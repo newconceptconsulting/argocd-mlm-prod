@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/newconceptconsulting/argo-naga-lotto-production
+    repoURL: https://github.com/newconceptconsulting/argocd-mlm-prod
     targetRevision: main
     path: deploy
     

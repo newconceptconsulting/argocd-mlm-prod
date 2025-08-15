@@ -6,13 +6,13 @@ metadata:
 spec:
   tls:
     - hosts:
-        - example.mlm.nccnaga.com
+        - mlm.nccnaga.com
       secretName: apisix-tls
   http:
     - name: my-app-rule
       match:
         hosts:
-          - example.mlm.nccnaga.com
+          - mlm.nccnaga.com
         paths:
           - /*
       backends:

@@ -1,0 +1,110 @@
+# ============================
+# 1. APISIX Embedded ETCD StatefulSet
+# ============================
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: apisix-etcd
+  namespace: default
+spec:
+  serviceName: apisix-etcd-headless
+  replicas: 3
+  selector:
+    matchLabels:
+      app: apisix-etcd
+  template:
+    metadata:
+      labels:
+        app: apisix-etcd
+    spec:
+      containers:
+      - name: etcd
+        image: bitnami/etcd:3.5.10-debian-11-r2
+        env:
+          - name: ALLOW_NONE_AUTHENTICATION
+            value: "yes"
+        ports:
+          - containerPort: 2379
+          - containerPort: 2380
+---
+# ============================
+# 2. Headless Service for ETCD
+# ============================
+apiVersion: v1
+kind: Service
+metadata:
+  name: apisix-etcd-headless
+  namespace: default
+spec:
+  clusterIP: None
+  selector:
+    app: apisix-etcd
+  ports:
+    - port: 2379
+      name: client
+    - port: 2380
+      name: peer
+---
+# ============================
+# 3. APISIX Deployment
+# ============================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apisix
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apisix
+  template:
+    metadata:
+      labels:
+        app: apisix
+    spec:
+      containers:
+      - name: apisix
+        image: apache/apisix:3.13.0-ubuntu
+        env:
+          - name: ETCD_HOST
+            value: "apisix-etcd-headless.default.svc.cluster.local:2379"
+        ports:
+          - containerPort: 80
+          - containerPort: 443
+---
+# ============================
+# 4. APISIX Gateway LoadBalancer Service
+# ============================
+apiVersion: v1
+kind: Service
+metadata:
+  name: apisix-gateway
+  namespace: default
+spec:
+  type: LoadBalancer
+  selector:
+    app: apisix
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+    - name: https
+      port: 443
+      targetPort: 443
+---
+# ============================
+# 5. APISIX Admin ClusterIP Service
+# ============================
+apiVersion: v1
+kind: Service
+metadata:
+  name: apisix-admin
+  namespace: default
+spec:
+  type: ClusterIP
+  selector:
+    app: apisix
+  ports:
+    - port: 9180
+      targetPort: 9180

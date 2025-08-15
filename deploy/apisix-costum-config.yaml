@@ -70,7 +70,7 @@ spec:
         image: apache/apisix:3.13.0-ubuntu
         env:
           - name: ETCD_HOST
-            value: "apisix-etcd-headless.default.svc.cluster.local:2379"
+            value: "http://apisix-etcd-headless.default.svc.cluster.local:2379"
         ports:
           - containerPort: 9080 # HTTP inside pod
           - containerPort: 9443 # HTTPS inside pod

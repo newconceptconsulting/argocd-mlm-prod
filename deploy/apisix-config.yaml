@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: apisix
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://charts.apiseven.com
+    chart: apisix
+    targetRevision: 2.11.5
+    helm:
+      values: |
+        gateway:
+          type: LoadBalancer
+          http:
+            nodePort: null
+          https:
+            nodePort: null
+        admin:
+          type: ClusterIP
+          port: 9180
+        etcd:
+          enabled: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: apisix   # <- deploy into the new dedicated namespace
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

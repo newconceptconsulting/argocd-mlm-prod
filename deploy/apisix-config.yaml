@@ -46,7 +46,7 @@ spec:
     spec:
       containers:
       - name: apisix
-        image: apache/apisix:3.0-alpine
+        image: apache/apisix:3.13.0-debian
         env:
           - name: ETCD_HOST
             value: "apisix-etcd.default.svc.cluster.local"

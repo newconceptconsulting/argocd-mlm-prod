@@ -53,7 +53,7 @@ spec:
   - name: rule1
     match:
       hosts:
-      - example.com        # Change to your domain
+      - mlm.nccnaga.com        # Change to your domain
       paths:
       - /*
     backends:

@@ -53,10 +53,9 @@ spec:
   - name: rule1
     match:
       hosts:
-      - mlm.nccnaga.com        # Change to your domain
+      - mlm.nccnaga.com       # Change to your domain
       paths:
       - /*
     backends:
     - serviceName: httpbin
       servicePort: 80
-

@@ -7,7 +7,7 @@ metadata:
   name: apisix-etcd
   namespace: default
 spec:
-  serviceName: apisix-etcd-headless
+  serviceName: "apisix-etcd-headless"
   replicas: 3
   selector:
     matchLabels:
@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: etcd
-        image: bitnami/etcd:3.5.10-debian-11-r2
+        image: bitnami/etcd:3.5.10
         env:
           - name: ALLOW_NONE_AUTHENTICATION
             value: "yes"
@@ -40,10 +40,12 @@ spec:
   selector:
     app: apisix-etcd
   ports:
-    - port: 2379
-      name: client
-    - port: 2380
-      name: peer
+    - name: client
+      port: 2379
+      targetPort: 2379
+    - name: peer
+      port: 2380
+      targetPort: 2380
 ---
 # ============================
 # 3. APISIX Deployment
@@ -70,8 +72,8 @@ spec:
           - name: ETCD_HOST
             value: "apisix-etcd-headless.default.svc.cluster.local:2379"
         ports:
-          - containerPort: 80
-          - containerPort: 443
+          - containerPort: 9080 # HTTP inside pod
+          - containerPort: 9443 # HTTPS inside pod
 ---
 # ============================
 # 4. APISIX Gateway LoadBalancer Service
@@ -88,13 +90,13 @@ spec:
   ports:
     - name: http
       port: 80
-      targetPort: 80
+      targetPort: 9080
     - name: https
       port: 443
-      targetPort: 443
+      targetPort: 9443
 ---
 # ============================
-# 5. APISIX Admin ClusterIP Service
+# 5. APISIX Admin Service
 # ============================
 apiVersion: v1
 kind: Service

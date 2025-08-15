@@ -13,7 +13,7 @@ spec:
       app: apisix-etcd
   template:
     metadata:
-      labels:
+      labels: 
         app: apisix-etcd
     spec:
       containers:
@@ -49,7 +49,7 @@ spec:
         image: apache/apisix:3.13.0-debian
         env:
           - name: ETCD_HOST
-            value: "apisix-etcd.default.svc.cluster.local"
+            value: "apisix-etcd.default.svc.cluster.local:2379"
         ports:
           - containerPort: 80
           - containerPort: 443

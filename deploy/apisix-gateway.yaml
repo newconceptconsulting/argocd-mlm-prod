@@ -13,6 +13,8 @@ spec:
       values: |
         gateway:
           type: LoadBalancer
+          service:
+            type: LoadBalancer
           http:
             nodePort: null
           https:

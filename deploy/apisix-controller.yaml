@@ -1,5 +1,61 @@
 # ============================
-# 1. Patch APISIX Gateway to LoadBalancer
+# 1. APISIX Embedded ETCD Deployment
+# ============================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apisix-etcd
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apisix-etcd
+  template:
+    metadata:
+      labels:
+        app: apisix-etcd
+    spec:
+      containers:
+      - name: etcd
+        image: bitnami/etcd:latest
+        env:
+          - name: ALLOW_NONE_AUTHENTICATION
+            value: "yes"
+        ports:
+          - containerPort: 2379
+          - containerPort: 2380
+---
+# ============================
+# 2. APISIX Deployment
+# ============================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apisix
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apisix
+  template:
+    metadata:
+      labels:
+        app: apisix
+    spec:
+      containers:
+      - name: apisix
+        image: apache/apisix:3.0-alpine
+        env:
+          - name: ETCD_HOST
+            value: "apisix-etcd.default.svc.cluster.local"
+        ports:
+          - containerPort: 80
+          - containerPort: 443
+---
+# ============================
+# 3. APISIX Gateway LoadBalancer Service
 # ============================
 apiVersion: v1
 kind: Service
@@ -16,66 +72,110 @@ spec:
       port: 443
       targetPort: 443
   selector:
-    app.kubernetes.io/instance: apisix
-    app.kubernetes.io/name: apisix
+    app: apisix
+---
 # ============================
-# 1. Backend Deployment
+# 4. Mock API Deployment
 # ============================
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: apisix
+  name: mock-api
   namespace: default
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: httpbin
+      app: mock-api
   template:
     metadata:
       labels:
-        app: httpbin
+        app: mock-api
     spec:
       containers:
-      - name: httpbin
-        image: kennethreitz/httpbin
+      - name: mock-api
+        image: clue/json-server
+        args: ["--watch", "/data/db.json", "--port", "3000"]
         ports:
-        - containerPort: 80
-
+          - containerPort: 3000
+        volumeMounts:
+          - name: mock-data
+            mountPath: /data
+      volumes:
+        - name: mock-data
+          configMap:
+            name: mock-api-data
 ---
 # ============================
-# 2. Backend Service
+# 5. Mock API ConfigMap
+# ============================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mock-api-data
+  namespace: default
+data:
+  db.json: |
+    {
+      "users": [
+        { "id": 1, "name": "Alice", "email": "alice@example.com" },
+        { "id": 2, "name": "Bob", "email": "bob@example.com" }
+      ],
+      "products": [
+        { "id": 1, "name": "Laptop", "price": 1200 },
+        { "id": 2, "name": "Phone", "price": 800 }
+      ]
+    }
+---
+# ============================
+# 6. Mock API Service
 # ============================
 apiVersion: v1
 kind: Service
 metadata:
-  name: apisix
+  name: mock-api
   namespace: default
 spec:
   selector:
-    app: httpbin
+    app: mock-api
   ports:
     - protocol: TCP
-      port: 80
-      targetPort: 80
-
+      port: 3000
+      targetPort: 3000
 ---
 # ============================
-# 3. APISIX Route
+# 7. APISIX Route with HTTPS redirect
 # ============================
 apiVersion: apisix.apache.org/v2
 kind: ApisixRoute
 metadata:
-  name: httpbin-route
+  name: mock-api-route
   namespace: default
+  annotations:
+    kubernetes.io/ingress.class: apisix
+    apisix.apache.org/real-ip-from: |
+      173.245.48.0/20,103.21.244.0/22,103.22.200.0/22,103.31.4.0/22,
+      141.101.64.0/18,108.162.192.0/18,190.93.240.0/20,188.114.96.0/20,
+      197.234.240.0/22,198.41.128.0/17,162.158.0.0/15,104.16.0.0/12,
+      172.64.0.0/13,131.0.72.0/22
+    apisix.apache.org/real-ip-header: "X-Forwarded-For"
 spec:
+  tls:
+    - hosts:
+        - mlm.nccnaga.com
+      secretName: mlm-naga-tls
   http:
   - name: rule1
     match:
       hosts:
-      - mlm.nccnaga.com       # Change to your domain
+        - mlm.nccnaga.com
       paths:
-      - /*
+        - /*
     backends:
-    - serviceName: httpbin
-      servicePort: 80
+      - serviceName: mock-api
+        servicePort: 3000
+    plugins:
+      - name: redirect
+        enable: true
+        config:
+          http_to_https: true

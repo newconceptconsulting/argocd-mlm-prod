@@ -1,0 +1,20 @@
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: my-app-route
+  namespace: default
+spec:
+  tls:
+    - hosts:
+        - example.mlm.nccnaga.com
+      secretName: apisix-tls
+  http:
+    - name: my-app-rule
+      match:
+        hosts:
+          - example.mlm.nccnaga.com
+        paths:
+          - /*
+      backends:
+        - serviceName: my-app
+          servicePort: 8080

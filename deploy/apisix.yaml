@@ -1,0 +1,137 @@
+#!/bin/bash
+set -e
+
+NAMESPACE=default
+DOMAIN=mlm.nccnaga.com
+SECRET_NAME=apisix-tls
+YAML_FILE=apisix.yaml
+
+echo "1️⃣ Generating self-signed TLS certificate..."
+openssl req -x509 -nodes -days 365 \
+  -newkey rsa:2048 \
+  -keyout tls.key \
+  -out tls.crt \
+  -subj "/CN=${DOMAIN}"
+
+echo "2️⃣ Creating Kubernetes TLS secret..."
+kubectl create secret tls $SECRET_NAME \
+  --namespace $NAMESPACE \
+  --cert=tls.crt \
+  --key=tls.key \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+echo "3️⃣ Writing APISIX YAML..."
+cat > $YAML_FILE <<EOF
+# ============================
+# 1. Embedded etcd Deployment + Service
+# ============================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apisix-etcd
+  namespace: $NAMESPACE
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apisix-etcd
+  template:
+    metadata:
+      labels:
+        app: apisix-etcd
+    spec:
+      containers:
+      - name: etcd
+        image: bitnami/etcd:latest
+        env:
+          - name: ALLOW_NONE_AUTHENTICATION
+            value: "yes"
+        ports:
+          - containerPort: 2379
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: apisix-etcd
+  namespace: $NAMESPACE
+spec:
+  selector:
+    app: apisix-etcd
+  ports:
+    - port: 2379
+      targetPort: 2379
+
+# ============================
+# 2. APISIX Deployment + LoadBalancer Service
+# ============================
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apisix
+  namespace: $NAMESPACE
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apisix
+  template:
+    metadata:
+      labels:
+        app: apisix
+    spec:
+      containers:
+      - name: apisix
+        image: apache/apisix:3.13.0-debian
+        env:
+          - name: ETCD_HOST
+            value: "apisix-etcd.$NAMESPACE.svc.cluster.local:2379"
+        ports:
+          - containerPort: 80
+          - containerPort: 443
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: apisix-gateway
+  namespace: $NAMESPACE
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: 80
+    - port: 443
+      targetPort: 443
+  selector:
+    app: apisix
+
+# ============================
+# 3. APISIXRoute (no backend)
+# ============================
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: example-route
+  namespace: $NAMESPACE
+  annotations:
+    kubernetes.io/ingress.class: apisix
+spec:
+  tls:
+    - hosts:
+        - $DOMAIN
+      secretName: $SECRET_NAME
+  http:
+    - name: example-rule
+      match:
+        hosts:
+          - $DOMAIN
+        paths:
+          - /*
+      backends: []
+EOF
+
+echo "4️⃣ Applying APISIX YAML..."
+kubectl apply -f $YAML_FILE
+
+echo "✅ Done! Wait for apisix-gateway LoadBalancer IP and point your domain to it."

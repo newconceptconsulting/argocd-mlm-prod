@@ -123,7 +123,7 @@ data:
       expire_time: 3600
       users:
         - username: admin
-          password: admin
+          password: Ncc@788*01-2%^512L
 ---
 apiVersion: v1
 kind: ServiceAccount

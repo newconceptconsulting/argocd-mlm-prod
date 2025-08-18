@@ -10,8 +10,7 @@ spec:
         hosts:
           - mlm.nccnaga.com
         paths:
-          - /   # match root
-          - /*  # match everything else
+          - /*
       backends:
         - serviceName: my-app
           servicePort: 8080
@@ -20,3 +19,4 @@ spec:
       enable: true
       config:
         http_to_https: true
+

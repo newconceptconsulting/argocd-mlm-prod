@@ -1,19 +1,19 @@
 apiVersion: apisix.apache.org/v2
 kind: ApisixRoute
 metadata:
-  name: my-app-route
+  name: lotto-authen-services
   namespace: default
 spec:
   http:
-    - name: my-app-rule
+    - name: lotto-authen-services
       match:
         hosts:
           - mlm.nccnaga.com
         paths:
           - /*
       backends:
-        - serviceName: my-app
-          servicePort: 8080
+        - serviceName: lotto-authen-services
+          servicePort: 8812
   plugins:
     - name: redirect
       enable: true

@@ -23,3 +23,4 @@ spec:
       kind: ApisixRoute
       jsonPointers:
         - /metadata/annotations/kubectl.kubernetes.io~1last-applied-configuration
+        - /spec/plugins

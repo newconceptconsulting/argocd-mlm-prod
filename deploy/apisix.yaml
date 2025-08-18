@@ -325,6 +325,6 @@ spec:
   selector:
     app.kubernetes.io/instance: apisix
     app.kubernetes.io/name: apisix
-  type: NodePort
+  type: LoadBalancer
   sessionAffinity: None
   externalTrafficPolicy: Cluster

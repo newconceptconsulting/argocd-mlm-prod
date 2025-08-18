@@ -22,3 +22,9 @@ spec:
     automated:
       selfHeal: true
       prune: true
+spec:
+  ignoreDifferences:
+    - group: apisix.apache.org
+      kind: ApisixRoute
+      jsonPointers:
+        - /metadata/annotations/kubectl.kubernetes.io~1last-applied-configuration

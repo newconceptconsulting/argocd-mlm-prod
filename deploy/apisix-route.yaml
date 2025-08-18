@@ -4,18 +4,19 @@ metadata:
   name: my-app-route
   namespace: default
 spec:
-  plugins:
-    - name: redirect
-      enable: true
-      config:
-        http_to_https: true
   http:
     - name: my-app-rule
       match:
         hosts:
           - mlm.nccnaga.com
         paths:
-          - /*
+          - /   # match root
+          - /*  # match everything else
       backends:
         - serviceName: my-app
           servicePort: 8080
+  plugins:
+    - name: redirect
+      enable: true
+      config:
+        http_to_https: true

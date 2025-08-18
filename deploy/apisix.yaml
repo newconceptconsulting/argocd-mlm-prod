@@ -121,7 +121,7 @@ data:
         zones:                         # The parameters of a cache
         - name: disk_cache_one         # The name of the cache, administrator can be specify
                                       # which cache to use by name in the admin api
-          memory_size: 50m             # The size of shared memory, it's used to store the cache index
+          memory_size: 500m             # The size of shared memory, it's used to store the cache index
           disk_size: 1G                # The size of disk, it's used to store the cache data
           disk_path: "/tmp/disk_cache_one" # The path to store the cache data
           cache_levels: "1:2"           # The hierarchy levels of a cache
@@ -147,7 +147,7 @@ data:
           role: admin
         # viewer: only can view configuration data
         - name: "viewer"
-          key: 4054f7cf07e344346cd3f287985e76a2
+          key: 9054f7cf07e3224336cd3f287985e76a41
           role: viewer
       router:
         http: 'radixtree_uri'         # radixtree_uri: match route by uri(base on radixtree)

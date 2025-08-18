@@ -9,20 +9,15 @@ spec:
     repoURL: https://github.com/newconceptconsulting/argocd-mlm-prod
     targetRevision: main
     path: deploy
-    
-    
   destination:
     server: https://kubernetes.default.svc
     namespace: default
-
   syncPolicy:
     syncOptions:
-    - CreateNamespace=true
-
+      - CreateNamespace=true
     automated:
       selfHeal: true
       prune: true
-spec:
   ignoreDifferences:
     - group: apisix.apache.org
       kind: ApisixRoute

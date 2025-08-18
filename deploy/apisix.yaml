@@ -207,7 +207,66 @@ data:
         listen_port: 9443
         ssl_protocols: "TLSv1 TLSv1.1 TLSv1.2 TLSv1.3"
         ssl_ciphers: "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES256-SHA256:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:DES-CBC3-SHA"
-
+        certificates:
+        - cert: |
+            -----BEGIN CERTIFICATE-----
+            MIIEszCCA5ugAwIBAgIUHt6tTW3Sh1sOaek0YWadvaUpPQowDQYJKoZIhvcNAQEL
+            BQAwgYsxCzAJBgNVBAYTAlVTMRkwFwYDVQQKExBDbG91ZEZsYXJlLCBJbmMuMTQw
+            MgYDVQQLEytDbG91ZEZsYXJlIE9yaWdpbiBTU0wgQ2VydGlmaWNhdGUgQXV0aG9y
+            aXR5MRYwFAYDVQQHEw1TYW4gRnJhbmNpc2NvMRMwEQYDVQQIEwpDYWxpZm9ybmlh
+            MB4XDTI1MDgxODAyMzMwMFoXDTQwMDgxNDAyMzMwMFowYjEZMBcGA1UEChMQQ2xv
+            dWRGbGFyZSwgSW5jLjEdMBsGA1UECxMUQ2xvdWRGbGFyZSBPcmlnaW4gQ0ExJjAk
+            BgNVBAMTHUNsb3VkRmxhcmUgT3JpZ2luIENlcnRpZmljYXRlMIIBIjANBgkqhkiG
+            9w0BAQEFAAOCAQ8AMIIBCgKCAQEAplV6YUAEj8yIioLIUO9EHmUuwzFyZXAjnebe
+            2jTxj4GiV8a3yxFrPevGZg8DpiBcZYNLozolotKhQrOqPyCETX72qPB1Xac/x3TJ
+            eQf1/qmXVseSdn+vt//fqfiUcZKjCo4gy475SPE3mPK0d08EwcDoC+SZsZBmrDaL
+            Op982A95hxO9KRuAC/XgTVJOuKE8nAWrqGuKCKlAZztL46GDCGAGdqABN21U0iro
+            C4xs/H7tIg+8cAdsieeD0isO2bul/4yGWy3h+y8+wv71Qp1jTTGkBX7oRLWI3wMm
+            gO1h1pMl9zvTIRsOxYSgwchkEaciUQ2DEAniuDHiykL9uFgwXwIDAQABo4IBNTCC
+            ATEwDgYDVR0PAQH/BAQDAgWgMB0GA1UdJQQWMBQGCCsGAQUFBwMCBggrBgEFBQcD
+            ATAMBgNVHRMBAf8EAjAAMB0GA1UdDgQWBBSSwhfMsepF4wyckW7kmLocAR1uSzAf
+            BgNVHSMEGDAWgBQk6FNXXXw0QIep65TbuuEWePwppDBABggrBgEFBQcBAQQ0MDIw
+            MAYIKwYBBQUHMAGGJGh0dHA6Ly9vY3NwLmNsb3VkZmxhcmUuY29tL29yaWdpbl9j
+            YTA2BgNVHREELzAtgg0qLm5jY25hZ2EuY29tgg9tbG0ubmNjbmFnYS5jb22CC25j
+            Y25hZ2EuY29tMDgGA1UdHwQxMC8wLaAroCmGJ2h0dHA6Ly9jcmwuY2xvdWRmbGFy
+            ZS5jb20vb3JpZ2luX2NhLmNybDANBgkqhkiG9w0BAQsFAAOCAQEAeJH2uh2WJSto
+            Ha98KO/4ilRC03/cRrFbzTF+xaJNYHpCc+7uHYWetwjHlHno329m3vWhReoAOuqB
+            GG5ugLR7WDHOU+CUGCG08R5KIIhJ6O6ccV6cdw8pDeKdsHh4g9Mqbfu7yhXClSpb
+            2zxu4moUAeM4MA4eQjE5miFVLPGXlnJ0cjmwlL7mcgaexwNoOhY08LYVBiWNK/G8
+            yKnuWz7kfJsmDV37hGS8R/n+glPIwvcNnuYg3jkpU/pZW1GIN63mbt2HdHzs9He6
+            9L49viUgDHQocRtZ2iYLF6+GTA4V0Q0GZJEmtNlqjXIKdxaHdYYNQGNr/nBnItPf
+            4+V0PkQ4Ow==
+            -----END CERTIFICATE-----
+          key: |
+            -----BEGIN PRIVATE KEY-----
+            MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCmVXphQASPzIiK
+            gshQ70QeZS7DMXJlcCOd5t7aNPGPgaJXxrfLEWs968ZmDwOmIFxlg0ujOiWi0qFC
+            s6o/IIRNfvao8HVdpz/HdMl5B/X+qZdWx5J2f6+3/9+p+JRxkqMKjiDLjvlI8TeY
+            8rR3TwTBwOgL5JmxkGasNos6n3zYD3mHE70pG4AL9eBNUk64oTycBauoa4oIqUBn
+            O0vjoYMIYAZ2oAE3bVTSKugLjGz8fu0iD7xwB2yJ54PSKw7Zu6X/jIZbLeH7Lz7C
+            /vVCnWNNMaQFfuhEtYjfAyaA7WHWkyX3O9MhGw7FhKDByGQRpyJRDYMQCeK4MeLK
+            Qv24WDBfAgMBAAECggEAIAFxn3XkitD18wUQS3aGunyIv3lrxDYMPG14sy8dzhnJ
+            Ja+wnOv4oT0Ve3znHFe8v7HAY6OkK0zxR7bvit8UZh8IkmBWjRNKE/SWceoEvSBf
+            5QxY0+Fk6/hZzshss9/d7IGFsPWNZSo5Iv6MmCqFxUx7uhIeOssI3plOOBUJPj+I
+            noZU6k2/zOCU7wURjXGZDay+QhRdpoS7RwfXc9o43sHpZ2m90ztMgoyRXbk/xdtV
+            jiDV6+cTRh3aUE51GYPq01k5K0wJULySftoc2HRPaJNWyFGPD4gz6b+C6fXCrbp4
+            iDzSIuLFcM0BN3eQSLn7sO43o1TnJfHgWTZ3NbhHuQKBgQDO8jIM0Or6HirpukHk
+            vs4bOgpMYHXDW3zaFJVLEsjAZEOvJ8z9W62jDp9KqTqkmaN4rlXCHBDEztKX72HG
+            6D10O8WpCuCv1FvBWQ1FR8jxNNI2GukAVl4CtmVWrYmIbCtvEtNE/2kTk6nowy3/
+            4VtVz4nT7KZ6qYPjb1MLSXKzZwKBgQDNwt+b+FuEgVmHD8AAhkLF9r+ZPiRpctUC
+            j4cBLWIZYCOGL3eWNJ8/zLg6GSyczxPH0Sbb2h6kyIc8Nj8WRLmOcQVJzzyWeK4h
+            1vIW5F05L1kUAx87QLS8MIZpgvdE3dyHUuWo7JSrt3aoMO6+w4fPFflgCUK7sELn
+            +jLmVye4SQKBgEk5T1ZTkeEgTYTX/7rFfL4LgltWAjU2qO2tPMoMgnX4xC40wgaf
+            qse4Q8qyKGrXZg0senGtZo2MtN1HuWwc/qmjAKR4kdoFJNY8AUMTTFl0nDDCwtD4
+            vljtWtwZmUFpLNEncxPF39Mqe4M9lIgmoB+zyIvw/1MFqgIOgO7MdUZfAoGAGPaO
+            iG6uM7o5sWAgzC99xGS2RBI8+qoa26+sEmF+KFP4m1wA5zFFLMlahHnvZqrc3H4s
+            d7nTw+wsNArkxn/Z/0UI/jZtRFgp0CMyxcI46SosZXgnftnP05ETjZN9ClbcXXKa
+            OE9Tji248JjXLj+sp1wkIBmfhgPRajF5oWZrhDkCgYA1xcskYXp5mmhfpNRLVgJx
+            rQR3P7cEYFVKSsG6ZJubzZ+g8VHSmCYLhMO/CN8/jbEYvzjIemPKUQfmnXNecqC6
+            b49fYPUmzdp1lSNzEJ7Yrq8IISwN2jZFcxqySthX3Im80imwTwydwsyWFe/OOte3
+            qnH46wmjXkg6RygINOGbJw==
+            -----END PRIVATE KEY-----
+          sni: "mlm.nccnaga.com"
     nginx_config:                     # config for render the template to
     genarate nginx.conf
       error_log: "/dev/stderr"

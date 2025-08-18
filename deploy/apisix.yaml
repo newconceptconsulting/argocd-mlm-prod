@@ -83,7 +83,7 @@ data:
       port_admin: 9180
       admin_key:
         - name: "admin"
-          key: edd1c9f034335f136f87ad84b625c8f1
+          key: edw1c9f036335f186f87ad84b625c8f2
           role: admin
       router:
         http: 'radixtree_uri'

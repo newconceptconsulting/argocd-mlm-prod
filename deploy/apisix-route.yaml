@@ -4,10 +4,6 @@ metadata:
   name: my-app-route
   namespace: default
 spec:
-  tls:
-    - hosts:
-        - mlm.nccnaga.com
-      secretName: apisix-tls
   plugins:
     - name: redirect
       enable: true

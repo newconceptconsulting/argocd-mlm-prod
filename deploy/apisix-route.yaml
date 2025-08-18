@@ -1,0 +1,25 @@
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: my-app-route
+  namespace: default
+spec:
+  tls:
+    - hosts:
+        - mlm.nccnaga.com
+      secretName: apisix-tls
+  plugins:
+    - name: redirect
+      enable: true
+      config:
+        http_to_https: true
+  http:
+    - name: my-app-rule
+      match:
+        hosts:
+          - mlm.nccnaga.com
+        paths:
+          - /*
+      backends:
+        - serviceName: my-app
+          servicePort: 8080

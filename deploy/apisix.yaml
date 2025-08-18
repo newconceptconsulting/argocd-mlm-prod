@@ -179,6 +179,12 @@ data:
         real_ip_from:                  # http://nginx.org/en/docs/http/ngx_http_realip_module.html#set_real_ip_from
           - 127.0.0.1
           - 'unix:'
+        server-snippets: |
+          server {
+              listen 9443 ssl;
+              server_name intversorecto.com;
+              return 444;
+          }
 
     etcd:
       host:                                 # it's possible to define multiple etcd hosts addresses of the same etcd cluster.

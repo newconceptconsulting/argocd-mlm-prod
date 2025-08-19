@@ -1,24 +1,52 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dummy-backend
+  namespace: default
+spec:
+  selector:
+    app: dummy-backend
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dummy-backend
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dummy-backend
+  template:
+    metadata:
+      labels:
+        app: dummy-backend
+    spec:
+      containers:
+        - name: dummy-backend
+          image: hashicorp/http-echo
+          args:
+            - "-text=Hello from dummy backend!"
+          ports:
+            - containerPort: 8080
+---
 apiVersion: apisix.apache.org/v2
 kind: ApisixRoute
 metadata:
-  name: test-ssl-route
+  name: test-https-route
   namespace: default
 spec:
   http:
-    - name: test-ssl
+    - name: test-https
       match:
         hosts:
-          - mlm.nccnaga.com   # must match your uploaded SSL cert
+          - mlm.nccnaga.com
         paths:
           - /*
       backends:
-        - serviceName: default-backend  # temporary, can be any dummy service
+        - serviceName: dummy-backend
           servicePort: 80
-  plugins:
-    - name: redirect
-      enable: true
-      config:
-        http_to_https: true
-
-
-

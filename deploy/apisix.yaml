@@ -5,7 +5,7 @@ metadata:
   name: apisix
   namespace: default
 data:
-  config.yaml: |-
+  config.yaml: |
     apisix:
       node_listen: 9080
       enable_heartbeat: true
@@ -33,7 +33,6 @@ data:
         enable_http2: true
         listen_port: 9443
         ssl_protocols: "TLSv1.2 TLSv1.3"
-        ssl_ciphers: "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES256-SHA256:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:DES-CBC3-SHA"
         cert: "/usr/local/apisix/conf/tls/tls.crt"
         cert_key: "/usr/local/apisix/conf/tls/tls.key"
     nginx_config:
@@ -68,7 +67,8 @@ data:
       - api-breaker
       - basic-auth
       - cors
-      - echo
+      - http-logger
+      - ip-restriction
       - jwt-auth
       - key-auth
       - limit-conn
@@ -79,28 +79,36 @@ data:
       - redirect
       - request-id
       - server-info
-      - traffic-split
       - gzip
       - real-ip
     stream_plugins:
       - mqtt-proxy
       - ip-restriction
       - limit-conn
+    plugin_attr:
+      server-info:
+        report_interval: 60
+        report_ttl: 3600
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: apisix
   namespace: default
+  labels:
+    app.kubernetes.io/name: apisix
+    app.kubernetes.io/instance: apisix
 spec:
   replicas: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: apisix
+      app.kubernetes.io/instance: apisix
   template:
     metadata:
       labels:
         app.kubernetes.io/name: apisix
+        app.kubernetes.io/instance: apisix
     spec:
       volumes:
         - name: apisix-config
@@ -115,19 +123,16 @@ spec:
           image: busybox:1.28
           command:
             - sh
-            - '-c'
-            - >
-              until nc -z apisix-etcd.default.svc.cluster.local 2379; do echo
-              waiting for etcd `date`; sleep 2; done;
-          resources: {}
-          imagePullPolicy: IfNotPresent
+            - -c
+            - |
+              until nc -z apisix-etcd.default.svc.cluster.local 2379; do echo waiting for etcd `date`; sleep 2; done;
       containers:
         - name: apisix
           image: apache/apisix:2.10.0-alpine
           ports:
             - name: http
               containerPort: 9080
-            - name: tls
+            - name: https
               containerPort: 9443
             - name: admin
               containerPort: 9180
@@ -142,19 +147,13 @@ spec:
             tcpSocket:
               port: 9080
             initialDelaySeconds: 10
-            timeoutSeconds: 1
             periodSeconds: 10
             successThreshold: 1
             failureThreshold: 6
           lifecycle:
             preStop:
               exec:
-                command:
-                  - /bin/sh
-                  - '-c'
-                  - sleep 30
-          imagePullPolicy: IfNotPresent
-      restartPolicy: Always
+                command: ["/bin/sh","-c","sleep 30"]
 ---
 apiVersion: v1
 kind: Service
@@ -166,8 +165,10 @@ spec:
     - name: admin
       port: 9180
       targetPort: 9180
+      protocol: TCP
   selector:
     app.kubernetes.io/name: apisix
+    app.kubernetes.io/instance: apisix
   type: ClusterIP
 ---
 apiVersion: v1
@@ -179,15 +180,16 @@ spec:
   type: LoadBalancer
   selector:
     app.kubernetes.io/name: apisix
+    app.kubernetes.io/instance: apisix
   ports:
     - name: http
       port: 80
       targetPort: 9080
+      protocol: TCP
     - name: https
       port: 443
       targetPort: 9443
-  sessionAffinity: None
-  externalTrafficPolicy: Cluster
+      protocol: TCP
 ---
 apiVersion: apisix.apache.org/v2
 kind: ApisixTls
@@ -204,15 +206,9 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: mlm-nccnaga-com-ingress
+  name: mlm-nccnaga-ingress
   namespace: default
-  annotations:
-    kubernetes.io/ingress.class: "apisix"
 spec:
-  tls:
-    - hosts:
-        - mlm.nccnaga.com
-      secretName: mlm.nccnaga.com-tls
   rules:
     - host: mlm.nccnaga.com
       http:
@@ -223,6 +219,8 @@ spec:
               service:
                 name: apisix-gateway
                 port:
-                  number: 443
-
-
+                  number: 80
+  tls:
+    - hosts:
+        - mlm.nccnaga.com
+      secretName: mlm.nccnaga.com-tls

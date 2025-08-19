@@ -1,21 +1,24 @@
 apiVersion: apisix.apache.org/v2
 kind: ApisixRoute
 metadata:
-  name: test-ssl-echo
+  name: test-ssl-route
   namespace: default
 spec:
   http:
-    - name: test-ssl-echo
+    - name: test-ssl
       match:
         hosts:
-          - mlm.nccnaga.com
+          - mlm.nccnaga.com   # must match your uploaded SSL cert
         paths:
           - /*
-      plugins:
-        - name: echo
-          enable: true
-          config:
-            body: "SSL is working on mlm.nccnaga.com!"
-            status: 200
+      backends:
+        - serviceName: default-backend  # temporary, can be any dummy service
+          servicePort: 80
+  plugins:
+    - name: redirect
+      enable: true
+      config:
+        http_to_https: true
+
 
 

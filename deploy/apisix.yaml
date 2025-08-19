@@ -181,3 +181,4 @@ spec:
     - mlm.nccnaga.com
   secret:
     name: mlm.nccnaga.com-tls
+    namespace: default

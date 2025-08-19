@@ -300,4 +300,16 @@ spec:
       nodePort: 32139
   sessionAffinity: None
   externalTrafficPolicy: Cluster
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixTls
+metadata:
+  name: mlm-nccnaga-com-tls
+  namespace: default
+spec:
+  hosts:
+    - mlm.nccnaga.com
+  secret:
+    name: mlm.nccnaga.com-tls
+
 

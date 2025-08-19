@@ -16,6 +16,7 @@ data:
       enable_reuseport: true
       enable_ipv6: true
       config_center: etcd
+
       allow_admin:
         - 0.0.0.0/0
       port_admin: 9180
@@ -23,25 +24,34 @@ data:
         - name: "admin"
           key: edw1c9f036335f186f87ad84b625c8f2
           role: admin
+
       router:
         http: 'radixtree_uri'
         ssl: 'radixtree_sni'
+
       dns_resolver_valid: 30
       resolver_timeout: 5
+
       ssl:
         enable: true
         enable_http2: true
         listen_port: 9443
         ssl_protocols: "TLSv1.2 TLSv1.3"
         ssl_ciphers: "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES256-SHA256:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:DES-CBC3-SHA"
-        cert: "/usr/local/apisix/conf/tls/tls.crt"
-        cert_key: "/usr/local/apisix/conf/tls/tls.key"
-    etcd:
-      host:                                 # it's possible to define multiple etcd hosts addresses of the same etcd cluster.
-        - "http://apisix-etcd.default.svc.cluster.local:2379"
-      prefix: "/apisix"     # apisix configurations prefix
-      timeout: 30   # 30 seconds
 
+      etcd:
+        host:
+          - "http://apisix-etcd.default.svc.cluster.local:2379"
+        prefix: "/apisix"
+        timeout: 30
+
+      plugins:
+        - api-breaker
+        - key-auth
+        - limit-req
+        - proxy-rewrite
+        - gzip
+        - real-ip
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -52,35 +62,31 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/instance: apisix
-      app.kubernetes.io/name: apisix
+      app: apisix
   template:
     metadata:
       labels:
-        app.kubernetes.io/instance: apisix
-        app.kubernetes.io/name: apisix
+        app: apisix
     spec:
       volumes:
         - name: apisix-config
           configMap:
             name: apisix
-        - name: tls-secret
-          secret:
-            secretName: mlm.nccnaga.com-tls
+            defaultMode: 420
       initContainers:
         - name: wait-etcd
           image: busybox:1.28
           command:
             - sh
             - '-c'
-            - until nc -z apisix-etcd.default.svc.cluster.local 2379; do echo waiting for etcd `date`; sleep 2; done;
+            - 'until nc -z apisix-etcd.default.svc.cluster.local 2379; do echo waiting for etcd; sleep 2; done;'
       containers:
         - name: apisix
           image: apache/apisix:2.10.0-alpine
           ports:
             - name: http
               containerPort: 9080
-            - name: tls
+            - name: https
               containerPort: 9443
             - name: admin
               containerPort: 9180
@@ -88,9 +94,12 @@ spec:
             - name: apisix-config
               mountPath: /usr/local/apisix/conf/config.yaml
               subPath: config.yaml
-            - name: tls-secret
-              mountPath: /usr/local/apisix/conf/tls
-              readOnly: true
+          readinessProbe:
+            tcpSocket:
+              port: 9080
+            initialDelaySeconds: 10
+            timeoutSeconds: 1
+            periodSeconds: 10
 ---
 apiVersion: v1
 kind: Service
@@ -98,13 +107,14 @@ metadata:
   name: apisix-admin
   namespace: default
 spec:
+  type: ClusterIP
   ports:
-    - name: apisix-admin
+    - name: admin
+      protocol: TCP
       port: 9180
       targetPort: 9180
   selector:
-    app.kubernetes.io/instance: apisix
-    app.kubernetes.io/name: apisix
+    app: apisix
 ---
 apiVersion: v1
 kind: Service
@@ -115,14 +125,15 @@ spec:
   type: LoadBalancer
   ports:
     - name: http
+      protocol: TCP
       port: 80
       targetPort: 9080
     - name: https
+      protocol: TCP
       port: 443
       targetPort: 9443
   selector:
-    app.kubernetes.io/instance: apisix
-    app.kubernetes.io/name: apisix
+    app: apisix
 ---
 apiVersion: apisix.apache.org/v2
 kind: ApisixTls
@@ -141,8 +152,9 @@ kind: Ingress
 metadata:
   name: apisix-ingress
   namespace: default
+  annotations:
+    kubernetes.io/ingress.class: apisix
 spec:
-  ingressClassName: apisix
   rules:
     - host: mlm.nccnaga.com
       http:
@@ -153,7 +165,7 @@ spec:
               service:
                 name: apisix-gateway
                 port:
-                  number: 443
+                  number: 80
   tls:
     - hosts:
         - mlm.nccnaga.com

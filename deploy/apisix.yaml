@@ -1,0 +1,173 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: etcd
+spec:
+  ports:
+    - port: 2379
+      targetPort: 2379
+      name: client
+  selector:
+    app: etcd
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: etcd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: etcd
+  template:
+    metadata:
+      labels:
+        app: etcd
+    spec:
+      containers:
+        - name: etcd
+          image: bitnami/etcd:3.5.11
+          env:
+            - name: ALLOW_NONE_AUTHENTICATION
+              value: "yes"
+            - name: ETCD_LISTEN_CLIENT_URLS
+              value: "http://0.0.0.0:2379"
+            - name: ETCD_ADVERTISE_CLIENT_URLS
+              value: "http://etcd.default.svc.cluster.local:2379"
+          ports:
+            - containerPort: 2379
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: apisix-config
+data:
+  config.yaml: |-
+    apisix:
+      node_listen: 9080
+      enable_admin: true
+      enable_admin_cors: true
+      enable_debug: false
+      enable_dev_mode: false
+      enable_ipv6: true
+      enable_reuseport: true
+      config_center: etcd
+      port_admin: 9180
+      allow_admin:
+        - 0.0.0.0/0
+      admin_key:
+        - name: "admin"
+          key: edw1c9f036335f186f87ad84b625c8f2
+          role: admin
+      router:
+        http: 'radixtree_uri'
+        ssl: 'radixtree_sni'
+      ssl:
+        enable: true
+        enable_http2: true
+        listen_port: 9443
+        ssl_protocols: "TLSv1.2 TLSv1.3"
+        ssl_ciphers: "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256"
+    etcd:
+      host:
+        - "http://etcd.default.svc.cluster.local:2379"
+      prefix: "/apisix"
+      timeout: 30
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: apisix-tls
+type: kubernetes.io/tls
+data:
+  tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUVzekNDQTV1Z0F3SUJBZ0lVWXJVcXFzWUh5bERBNFQ4RG9DN2hIemZoQkU0d0RRWUpLb1pJaHZjTkFRRUwKQlFBd2dZc3hDekFKQmdOVkJBWVRBbFZUTVJrd0Z3WURWUVFLRXhCRGJHOTFaRVpzWVhKbExDQkpibU11TVRRdwpNZ1lEVlFRTEV5dERiRzkxWkVac1lYSmxJRTl5YVdkcGJpQlRVMHdnUTJWeWRHbG1hV05oZEdVZ1FYVjBhRzl5CmFYUjVNUll3RkFZRFZRUUhFdzFUWVc0Z1JuSmhibU5wYzJOdk1STXdFUVlEVlFRSUV3cERZV3hwWm05eWJtbGgKTUI0WERUSTFNRGd4T1RBeE1UVXdNRm9YRFRRd01EZ3hOVEF4TVRVd01Gb3dZakVaTUJjR0ExVUVDaE1RUTJ4dgpkV1JHYkdGeVpTd2dTVzVqTGpFZE1Cc0dBMVVFQ3hNVVEyeHZkV1JHYkdGeVpTQlBjbWxuYVc0Z1EwRXhKakFrCkJnTlZCQU1USFVOc2IzVmtSbXhoY21VZ1QzSnBaMmx1SUVObGNuUnBabWxqWVhSbE1JSUJJakFOQmdrcWhraUcKOXcwQkFRRUZBQU9DQVE4QU1JSUJDZ0tDQVFFQTVVdytpLzh5UmJ3QWhpcjZveTE3RVdUR2paZks1RWFHYmJ1cwpxWTNJdm9HT0tjelNzeTZNMTFjNzZzSlQ3dkxTUUN1OVRPOTNPMGw1cyticW1mcFljRTFCMzZ5RHZrQ0lzN2pKCmJlTzE5RTIwZkNFZS9IZTlCdEN4c3BXaTV2N2h1aEc5QVJFYmlFR052bEZEVVc1M2dvd0R2TnF5bGphQjZIMk0KKzdyUzBGV2tXMmhuTlBZWUhtdHF6L2R0MWdTcFlJWnBZTlJGTytUNXBpeVRKb3V5bGVIM05UTXlTcVFIUjJ5bApkY3BPeWNVR2NnU01WTk5LWjQwR1VON0c4eTNzT3lobmhYMHduQjBZclR5YmRXa3FzM0dqNUZTQksvVHFVOW5LCnFXblhyVVBiMFhSVFVvT0RtVnA0dE03MThmWkRKSW1HYUp5Vk5RbG4zWUxZcXAwUFRRSURBUUFCbzRJQk5UQ0MKQVRFd0RnWURWUjBQQVFIL0JBUURBZ1dnTUIwR0ExVWRKUVFXTUJRR0NDc0dBUVVGQndNQ0JnZ3JCZ0VGQlFjRApBVEFNQmdOVkhSTUJBZjhFQWpBQU1CMEdBMVVkRGdRV0JCU0txNjZJSll1ZEljME96VTBlemxQVm1YbDZlVEFmCkJnTlZIU01FR0RBV2dCUWs2Rk5YWFh3MFFJZXA2NVRidXVFV2VQd3BwREJBQmdnckJnRUZCUWNCQVFRME1ESXcKTUFZSUt3WUJCUVVITUFHR0pHaDBkSEE2THk5dlkzTndMbU5zYjNWa1pteGhjbVV1WTI5dEwyOXlhV2RwYmw5agpZVEEyQmdOVkhSRUVMekF0Z2cwcUxtNWpZMjVoWjJFdVkyOXRnZzl0YkcwdWJtTmpibUZuWVM1amIyMkNDMjVqClkyNWhaMkV1WTI5dE1EZ0dBMVVkSHdReE1DOHdMYUFyb0NtR0oyaDBkSEE2THk5amNtd3VZMnh2ZFdSbWJHRnkKWlM1amIyMHZiM0pwWjJsdVgyTmhMbU55YkRBTkJna3Foa2lHOXcwQkFRc0ZBQU9DQVFFQVcwS2RVSi9sNjlJZApNTDhRTDlYVjZVbUYxZytub1Q2U2VGTVR6eHFwTXRKNG9UYkN5SXlXekluY2xrbTB3cFBSbjIyV255Wk1MSGowClpyOGJqa0ZIYk1pQ3ZZcE8yWW1BN3o3Zy9PdXhzbUNMck0xNXRRRkR2ZHV3ZHRTeEkxT1l3NUlwRlZCNGZyUVQKSFlwcnhhVGVyVGZVVlFsVTVQZUE1a1RzR2ptWUQzQTJ1OHJpSUIyS0J3T0N1QXo2WWFpWEx3TGwyZEU0VU5lcwp5bjRLQW1OMnVBU0RGZHlldnh2SjdjZDBVejJyTVBxNFFGczRDVGRRRU8ra0FXb0VjVkgyUU9VNFdWd09jcGhzCnBqZVhERER2SjVSaE9rTld1SThZMzh0MHd2T09ETzJOM01BbjNJWll4cmMvbDVNeWtRanBJWHdRd1VvdzdYSm8KS0pYWWd2Y00zQT09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+  tls.key: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2Z0lCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktnd2dnU2tBZ0VBQW9JQkFRRGxURDZML3pKRnZBQ0cKS3ZxakxYc1JaTWFObDhya1JvWnR1NnlwamNpK2dZNHB6Tkt6TG96WFZ6dnF3bFB1OHRKQUs3MU03M2M3U1htego1dXFaK2xod1RVSGZySU8rUUlpenVNbHQ0N1gwVGJSOElSNzhkNzBHMExHeWxhTG0vdUc2RWIwQkVSdUlRWTIrClVVTlJibmVDakFPODJyS1dOb0hvZll6N3V0TFFWYVJiYUdjMDloZ2VhMnJQOTIzV0JLbGdobWxnMUVVNzVQbW0KTEpNbWk3S1Y0ZmMxTXpKS3BBZEhiS1YxeWs3SnhRWnlCSXhVMDBwbmpRWlEzc2J6TGV3N0tHZUZmVENjSFJpdApQSnQxYVNxemNhUGtWSUVyOU9wVDJjcXBhZGV0UTl2UmRGTlNnNE9aV25pMHp2WHg5a01raVlab25KVTFDV2ZkCmd0aXFuUTlOQWdNQkFBRUNnZ0VBQzJSV1Z5NCttU2hWL2xSMFQxY2JIaW9ia3oxUFh6Z0J4Y0hsT2lkSktlM1YKMmszS3lnd3VBeVRhWFRkNlpBeThWV1BXNjlPWjRPQXRvN3A5UFZrcXU2bWE5RG5sOGJYVEZOckJaeXhCQmZvMgpWVlJ2N2FzbFFRbHRTcW9VaGRWejhZS2dHVVY0VUxTeERodUxkS2hBVjhRTkMzenlFblJ5ejlJdEJ2U3BOS0IwCmpnaTJCV1hEbXVCR1NPdlBrN1MzaEMwTmF0SmNyamZmTVdiM0tYdTlwL0FiZ1h5WEJlOFJxNmtYdXd6QytLVTQKejdYQkxFWWtKWTRuRGJIaHJ5RXU5YktHeG5Nd3FlM2RUeEpJbSthTVBEYjhla05BMUlkbXJmU2JwT09iZXJSdwpiaUU2OFdZNm9tbjJSWGlBbVppcUswWEd2OXdjU2pUczJKSkNwcGhXSVFLQmdRRDJjbjQxVnFCWFk2Q2xsWHAvCnlZYVBuYVNmWm5vUlJNblBEZ2ZPRFhpNFlkbVhBNmhVQWczRGpMMG1VYzhKSXFjVTNySXk1dnRFUE14WkpIOGoKemxXdldWWW1GTHdyZnpvZ3p2MW9lbFFNYWJmbU9xeDAxZks4bWo2VG9qeTNZOXNBTVhYS05NVWk3SzBxVjYxOAp3bHBoYzdvV01tcGcrRS9NR3FWdk5Id3pyd0tCZ1FEdUw1TzBOL3U2WTYraDZTN2xSK2pHcWYzMzUzLzdUMituCnFlWjBqVFdqdmZVOE56SWo1ejQ4bUlDdlAwM1RZVWlad2ZyWmxZWTQweVJTN01XVk9nRkZ4cWhqOVZFaEE5ZTAKem8zWkxYZmNCc3lPWTl3QzZ3L0RvaE02RGlkdnJDcjRXMDIwVDFlSTRTYWwxcDlzY095NXdTc2N2ZFZxZG44dgp4WE44NUppZnd3S0JnUUN5enZOZlE5RG1WdlN4N3ppSUN2SEV0YjVCb1JxaitPTHJoZVNIemlKdXRTQW9mNURjCkV2bGxqbkdXb2ZpelNoOHI5MEFYeXBzNE1WeWF1TzQrVG5EQTN2S3dnbzdjaUZ6bWZRaERpNjM3cTZDd1BKWHYKMTJOZEVCU2pEUzA4YWdqMXBPMHZud1lCaHZORks0Ukdac1VvdTh5aVdrWHd3WGswUDRrVW5HSVpKUUtCZ1FDeQpSQldPT3FCQzNqMGpOejBNQ1lma3VISUdTdE4wcWYxdFJUSGdaWmVSMTZobHl3SFI4VTZaVjZKb2h6NmVTQjlvClJOQ1ViTjZxUlF6WXE3RXRnTjVXOU5vdkJmb1VkYVhLQXhZVFIzNS94Tzd3V3pqZFRrVGNMTCtySWRET09kTm4KVWg2VUp4WGlzbkNVaWsrRGYva05CZEJZa0pQY1BKZndqeDFpaWt6WXRRS0JnR282eFg2V3BYaHJWVEJYbW9RYgpPSGhkVXRiOWNoVi80RDMyZlIxdUJxQUJBQ2FXcHNaNXB1VlhlK00rbzdOcHM0UnNwcHkzNWV1R2tSMmw0NVNvClBtZ1pOMUtQZlZJekpiYzlRTW9LZGdIWndkTG0yWkpKMDRNRTQ4RnIwNzZWNE5VL21ValR4Q0NHQ0VvR2hvbWIKMlNxc3BydDF4TExLbkIyczFpVmJCUzVvCi0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apisix
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apisix
+  template:
+    metadata:
+      labels:
+        app: apisix
+    spec:
+      containers:
+        - name: apisix
+          image: apache/apisix:2.10.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9080 # HTTP
+            - containerPort: 9180 # Admin API
+            - containerPort: 9443 # HTTPS
+          volumeMounts:
+            - name: config-yaml
+              mountPath: /usr/local/apisix/conf/config.yaml
+              subPath: config.yaml
+      volumes:
+        - name: config-yaml
+          configMap:
+            name: apisix-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: apisix-service
+spec:
+  selector:
+    app: apisix
+  ports:
+    - name: http
+      port: 80
+      targetPort: 9080
+    - name: https
+      port: 443
+      targetPort: 9443
+    - name: admin
+      port: 9180
+      targetPort: 9180
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: apisix-gateway
+spec:
+  type: LoadBalancer
+  selector:
+    app: apisix
+  ports:
+    - name: http
+      port: 80
+      targetPort: 9080
+    - name: https
+      port: 443
+      targetPort: 9443
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: apisix-ingress
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+spec:
+  tls:
+    - hosts:
+        - apisix.local
+      secretName: apisix-tls
+  rules:
+    - host: apisix.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: apisix-service
+                port:
+                  number: 80

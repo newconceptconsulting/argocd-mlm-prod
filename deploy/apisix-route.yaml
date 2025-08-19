@@ -17,9 +17,5 @@ spec:
           config:
             body: "SSL is working on mlm.nccnaga.com!"
             status: 200
-        - name: redirect
-          enable: true
-          config:
-            http_to_https: true
 
 

@@ -1,0 +1,228 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: apisix
+  namespace: default
+data:
+  config.yaml: |-
+    apisix:
+      node_listen: 9080
+      enable_heartbeat: true
+      enable_admin: true
+      enable_admin_cors: true
+      enable_debug: false
+      enable_dev_mode: false
+      enable_reuseport: true
+      enable_ipv6: true
+      config_center: etcd
+      allow_admin:
+        - 0.0.0.0/0
+      port_admin: 9180
+      admin_key:
+        - name: "admin"
+          key: edw1c9f036335f186f87ad84b625c8f2
+          role: admin
+      router:
+        http: 'radixtree_uri'
+        ssl: 'radixtree_sni'
+      dns_resolver_valid: 30
+      resolver_timeout: 5
+      ssl:
+        enable: true
+        enable_http2: true
+        listen_port: 9443
+        ssl_protocols: "TLSv1.2 TLSv1.3"
+        ssl_ciphers: "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES256-SHA256:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:DES-CBC3-SHA"
+        cert: "/usr/local/apisix/conf/tls/tls.crt"
+        cert_key: "/usr/local/apisix/conf/tls/tls.key"
+    nginx_config:
+      error_log: "/dev/stderr"
+      error_log_level: "warn"
+      worker_rlimit_nofile: 20480
+      event:
+        worker_connections: 10620
+      http:
+        access_log: "/dev/stdout"
+        keepalive_timeout: 60s
+        client_header_timeout: 60s
+        client_body_timeout: 60s
+        send_timeout: 10s
+        underscores_in_headers: "on"
+        real_ip_header: "X-Real-IP"
+        real_ip_from:
+          - 127.0.0.1
+          - 'unix:'
+        server-snippets: |
+          server {
+              listen 9443 ssl;
+              server_name intversorecto.com;
+              return 444;
+          }
+    etcd:
+      host:
+        - "http://apisix-etcd.default.svc.cluster.local:2379"
+      prefix: "/apisix"
+      timeout: 30
+    plugins:
+      - api-breaker
+      - basic-auth
+      - cors
+      - echo
+      - jwt-auth
+      - key-auth
+      - limit-conn
+      - limit-count
+      - limit-req
+      - node-status
+      - proxy-cache
+      - redirect
+      - request-id
+      - server-info
+      - traffic-split
+      - gzip
+      - real-ip
+    stream_plugins:
+      - mqtt-proxy
+      - ip-restriction
+      - limit-conn
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apisix
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: apisix
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: apisix
+    spec:
+      volumes:
+        - name: apisix-config
+          configMap:
+            name: apisix
+            defaultMode: 420
+        - name: tls-secret
+          secret:
+            secretName: mlm.nccnaga.com-tls
+      initContainers:
+        - name: wait-etcd
+          image: busybox:1.28
+          command:
+            - sh
+            - '-c'
+            - >
+              until nc -z apisix-etcd.default.svc.cluster.local 2379; do echo
+              waiting for etcd `date`; sleep 2; done;
+          resources: {}
+          imagePullPolicy: IfNotPresent
+      containers:
+        - name: apisix
+          image: apache/apisix:2.10.0-alpine
+          ports:
+            - name: http
+              containerPort: 9080
+            - name: tls
+              containerPort: 9443
+            - name: admin
+              containerPort: 9180
+          volumeMounts:
+            - name: apisix-config
+              mountPath: /usr/local/apisix/conf/config.yaml
+              subPath: config.yaml
+            - name: tls-secret
+              mountPath: /usr/local/apisix/conf/tls
+              readOnly: true
+          readinessProbe:
+            tcpSocket:
+              port: 9080
+            initialDelaySeconds: 10
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 6
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /bin/sh
+                  - '-c'
+                  - sleep 30
+          imagePullPolicy: IfNotPresent
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: apisix-admin
+  namespace: default
+spec:
+  ports:
+    - name: admin
+      port: 9180
+      targetPort: 9180
+  selector:
+    app.kubernetes.io/name: apisix
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: apisix-gateway
+  namespace: default
+spec:
+  type: LoadBalancer
+  selector:
+    app.kubernetes.io/name: apisix
+  ports:
+    - name: http
+      port: 80
+      targetPort: 9080
+    - name: https
+      port: 443
+      targetPort: 9443
+  sessionAffinity: None
+  externalTrafficPolicy: Cluster
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixTls
+metadata:
+  name: mlm-nccnaga-com-tls
+  namespace: default
+spec:
+  hosts:
+    - mlm.nccnaga.com
+  secret:
+    name: mlm.nccnaga.com-tls
+    namespace: default
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mlm-nccnaga-com-ingress
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: "apisix"
+spec:
+  tls:
+    - hosts:
+        - mlm.nccnaga.com
+      secretName: mlm.nccnaga.com-tls
+  rules:
+    - host: mlm.nccnaga.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: apisix-gateway
+                port:
+                  number: 443
+
+

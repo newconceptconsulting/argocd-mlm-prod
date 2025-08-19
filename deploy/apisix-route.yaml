@@ -1,0 +1,22 @@
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: mlm-authen-services
+  namespace: default
+spec:
+  http:
+    - name: mlm-authen-services
+      match:
+        hosts:
+          - mlm.nccnaga.com
+        paths:
+          - /*
+      backends:
+        - serviceName: mlm-authen-services
+          servicePort: 8812
+  plugins:
+    - name: redirect
+      enable: true
+      config:
+        http_to_https: true
+

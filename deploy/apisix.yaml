@@ -25,9 +25,6 @@ spec:
           configMap:
             name: apisix
             defaultMode: 420
-        - name: tls-secret
-          secret:
-            secretName: mlm.nccnaga.com-tls
       initContainers:
         - name: wait-etcd
           image: busybox:1.28
@@ -59,8 +56,6 @@ spec:
             - name: apisix-config
               mountPath: /usr/local/apisix/conf/config.yaml
               subPath: config.yaml
-            - name: tls-secret
-              mountPath: /usr/local/apisix/conf/tls
               readOnly: true
           readinessProbe:
             tcpSocket:

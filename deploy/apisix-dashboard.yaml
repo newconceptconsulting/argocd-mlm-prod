@@ -92,7 +92,7 @@ spec:
   selector:
     app.kubernetes.io/instance: apisix-dashboard
     app.kubernetes.io/name: apisix-dashboard
-  type: ClusterIP #LoadBalancer
+  type: LoadBalancer #ClusterIP
 ---
 kind: ConfigMap
 apiVersion: v1

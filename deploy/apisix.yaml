@@ -25,6 +25,9 @@ spec:
           configMap:
             name: apisix
             defaultMode: 420
+        - name: tls-secret
+          secret:
+            secretName: mlm.nccnaga.com-tls
       initContainers:
         - name: wait-etcd
           image: busybox:1.28
@@ -56,6 +59,9 @@ spec:
             - name: apisix-config
               mountPath: /usr/local/apisix/conf/config.yaml
               subPath: config.yaml
+            - name: tls-secret
+              mountPath: /usr/local/apisix/conf/tls
+              readOnly: true
           readinessProbe:
             tcpSocket:
               port: 9080
@@ -161,6 +167,8 @@ data:
         listen_port: 9443
         ssl_protocols: "TLSv1.2 TLSv1.3"
         ssl_ciphers: "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES256-SHA256:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:DES-CBC3-SHA"
+        cert: "/usr/local/apisix/conf/tls/tls.crt"
+        cert_key: "/usr/local/apisix/conf/tls/tls.key"   
     nginx_config:                     # config for render the template to
     genarate nginx.conf
       error_log: "/dev/stderr"

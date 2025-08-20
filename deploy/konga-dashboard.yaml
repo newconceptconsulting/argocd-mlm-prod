@@ -29,27 +29,21 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: postgres:15
-          env:
-            - name: POSTGRES_USER
-              valueFrom:
-                secretKeyRef:
-                  name: konga-db-secret
-                  key: DB_USER
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: konga-db-secret
-                  key: DB_PASSWORD
-            - name: POSTGRES_DB
-              value: "konga"
-            - name: PGDATA
-              value: /var/lib/postgresql/data/pgdata
+          image: postgres:14
           ports:
             - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: konga
+            - name: POSTGRES_USER
+              value: konga
+            - name: POSTGRES_PASSWORD
+              value: konga_password
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
           volumeMounts:
             - name: postgres-data
-              mountPath: /var/lib/postgresql/data/pgdata
+              mountPath: /var/lib/postgresql/data
       volumes:
         - name: postgres-data
           persistentVolumeClaim:
@@ -68,6 +62,7 @@ spec:
   resources:
     requests:
       storage: 2Gi
+  storageClassName: standard-rwo
 
 ---
 # 4. Postgres Service
@@ -77,11 +72,10 @@ metadata:
   name: postgres
   namespace: default
 spec:
-  selector:
-    app: postgres
   ports:
     - port: 5432
-      targetPort: 5432
+  selector:
+    app: postgres
 
 ---
 # 5. Konga Deployment
@@ -100,34 +94,26 @@ spec:
       labels:
         app: konga
     spec:
-      imagePullSecrets:
-        - name: docker-hub
       containers:
         - name: konga
           image: newconceptconsulting/my-konga:2.2
+          ports:
+            - containerPort: 1337
           env:
             - name: DB_ADAPTER
-              value: "postgres"
+              value: postgres
             - name: DB_HOST
-              value: "postgres.default.svc.cluster.local"
+              value: postgres.default.svc.cluster.local
             - name: DB_PORT
               value: "5432"
             - name: DB_USER
-              valueFrom:
-                secretKeyRef:
-                  name: konga-db-secret
-                  key: DB_USER
+              value: konga
             - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: konga-db-secret
-                  key: DB_PASSWORD
+              value: konga_password
             - name: DB_DATABASE
-              value: "konga"
-            - name: NODE_ENV
-              value: "production"
-          ports:
-            - containerPort: 1337
+              value: konga
+          imagePullSecrets:
+            - name: docker-hub
 
 ---
 # 6. Konga Service

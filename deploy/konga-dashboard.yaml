@@ -54,7 +54,7 @@ spec:
                   name: postgres-secret
                   key: POSTGRES_PASSWORD
             - name: PGDATA
-              value: /var/lib/postgresql/data/pgdata  # subdirectory
+              value: /var/lib/postgresql/data/pgdata/k8s  # subdirectory
           ports:
             - containerPort: 5432
           volumeMounts:

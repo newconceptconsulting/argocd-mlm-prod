@@ -53,28 +53,6 @@ data:
       tls:
         enabled: true
 ---
-# 3️⃣ Kong Manager Ingress (points to Admin API service)
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: kong-manager
-  namespace: default
-  annotations:
-    konghq.com/strip-path: "false"
-spec:
-  ingressClassName: kong
-  rules:
-    - host: manager.mlm.nccnaga.com
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: kong-kong-admin   # Admin API service provided by Helm chart
-                port:
-                  number: 8444
----
 # 4️⃣ HTTPBIN Ingress with TLS
 apiVersion: networking.k8s.io/v1
 kind: Ingress

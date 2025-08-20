@@ -1,17 +1,31 @@
-# 1. PostgreSQL Secret
+---
+# 1. Secret for Konga admin password
 apiVersion: v1
 kind: Secret
 metadata:
-  name: konga-db-secret
+  name: konga-secret
   namespace: default
 type: Opaque
 data:
-  POSTGRES_USER: a29uZ2E=        # "konga" base64
-  POSTGRES_PASSWORD: cGFzc3dvcmQ= # "password" base64
-  POSTGRES_DB: a29uZ2E=           # "konga" base64
+  # base64-encoded password, e.g., 'admin123' -> YWRtaW4xMjM=
+  KONGA_ADMIN_PASSWORD: YWRtaW4xMjM=
 
 ---
-# 2. PostgreSQL Deployment + PVC
+# 2. PVC for Postgres database
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: konga-postgres-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+# 3. Postgres Deployment for Konga
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -31,21 +45,17 @@ spec:
         - name: postgres
           image: postgres:15
           env:
+            - name: POSTGRES_DB
+              value: konga
             - name: POSTGRES_USER
-              valueFrom:
-                secretKeyRef:
-                  name: konga-db-secret
-                  key: POSTGRES_USER
+              value: konga
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: konga-db-secret
-                  key: POSTGRES_PASSWORD
-            - name: POSTGRES_DB
-              valueFrom:
-                secretKeyRef:
-                  name: konga-db-secret
-                  key: POSTGRES_DB
+                  name: konga-secret
+                  key: KONGA_ADMIN_PASSWORD
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
           ports:
             - containerPort: 5432
           volumeMounts:
@@ -54,42 +64,33 @@ spec:
       volumes:
         - name: pgdata
           persistentVolumeClaim:
-            claimName: konga-pg-pvc
+            claimName: konga-postgres-pvc
 
 ---
-# 3. PostgreSQL PVC
+# 4. Postgres Service
 apiVersion: v1
-kind: PersistentVolumeClaim
+kind: Service
 metadata:
-  name: konga-pg-pvc
+  name: konga-postgres
   namespace: default
 spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 2Gi
+  type: ClusterIP
+  selector:
+    app: konga-postgres
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
 
 ---
-# 4. Konga Secret for admin password
-apiVersion: v1
-kind: Secret
-metadata:
-  name: konga-secret
-  namespace: default
-type: Opaque
-data:
-  KONGA_ADMIN_PASSWORD: TGFzKDEyMk1uYTIxMyYq
-
----
-# 5. Konga Deployment (multi-replica)
+# 5. Konga Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: konga
   namespace: default
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: konga
@@ -102,39 +103,33 @@ spec:
         - name: konga
           image: pantsel/konga:latest
           env:
-            - name: DB_ADAPTER
-              value: "postgres"
-            - name: DB_HOST
-              value: "konga-postgres.default.svc.cluster.local"
-            - name: DB_PORT
-              value: "5432"
-            - name: DB_USER
-              valueFrom:
-                secretKeyRef:
-                  name: konga-db-secret
-                  key: POSTGRES_USER
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: konga-db-secret
-                  key: POSTGRES_PASSWORD
-            - name: DB_DATABASE
-              valueFrom:
-                secretKeyRef:
-                  name: konga-db-secret
-                  key: POSTGRES_DB
             - name: NODE_ENV
-              value: "production"
+              value: production
             - name: TOKEN_SECRET
               valueFrom:
                 secretKeyRef:
                   name: konga-secret
                   key: KONGA_ADMIN_PASSWORD
+            - name: DB_ADAPTER
+              value: "postgres"
+            - name: DB_HOST
+              value: konga-postgres
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USER
+              value: konga
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: konga-secret
+                  key: KONGA_ADMIN_PASSWORD
+            - name: DB_DATABASE
+              value: konga
           ports:
             - containerPort: 1337
 
 ---
-# 6. Konga Service
+# 6. Konga LoadBalancer Service
 apiVersion: v1
 kind: Service
 metadata:
@@ -146,32 +141,5 @@ spec:
     app: konga
   ports:
     - protocol: TCP
-      port: 443
+      port: 443       # external HTTPS port
       targetPort: 1337
-
----
-# 7. Ingress for Konga
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: konga
-  namespace: default
-  annotations:
-    konghq.com/strip-path: "false"
-spec:
-  ingressClassName: kong
-  tls:
-    - hosts:
-        - kong-manager.nccnaga.com
-      secretName: kong-manager-tls
-  rules:
-    - host: kong-manager.nccnaga.com
-      http:
-        paths:
-          - path: /konga
-            pathType: Prefix
-            backend:
-              service:
-                name: konga
-                port:
-                  number: 443

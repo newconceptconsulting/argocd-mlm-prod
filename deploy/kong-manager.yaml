@@ -1,9 +1,3 @@
-# kong-manager-all.yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: default
----
 # Kong Manager ConfigMap for DB-less mode
 apiVersion: v1
 kind: ConfigMap

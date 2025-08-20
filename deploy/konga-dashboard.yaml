@@ -93,53 +93,6 @@ metadata:
 type: Opaque
 data:
   KONGA_ADMIN_PASSWORD: TGFzKDEyMk1uYTIxMyYq   # base64 password
-
----
-# 7. Konga Deployment (using Postgres)
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: konga
-  namespace: default
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: konga
-  template:
-    metadata:
-      labels:
-        app: konga
-    spec:
-      containers:
-        - name: konga
-          image: pantsel/konga:latest
-          env:
-            - name: DB_ADAPTER
-              value: "postgres"
-            - name: DB_HOST
-              value: "postgres.default.svc.cluster.local"
-            - name: DB_PORT
-              value: "5432"
-            - name: DB_USER
-              value: "postgres"
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: postgres-secret
-                  key: POSTGRES_PASSWORD
-            - name: DB_DATABASE
-              value: "konga"
-            - name: NODE_ENV
-              value: "production"
-            - name: TOKEN_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: konga-secret
-                  key: KONGA_ADMIN_PASSWORD
-          ports:
-            - containerPort: 1337
-
 ---
 # 8. Konga Service
 apiVersion: v1

@@ -1,3 +1,31 @@
+---
+# 1. Secret for Konga admin password
+apiVersion: v1
+kind: Secret
+metadata:
+  name: konga-secret
+  namespace: default
+type: Opaque
+data:
+  # base64-encoded password
+  KONGA_ADMIN_PASSWORD: TGFzKDEyMk1uYTIxMyYq
+
+---
+# 2. PersistentVolumeClaim for SQLite database
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: konga-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+# 3. Konga Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -17,65 +45,65 @@ spec:
         - name: konga
           image: pantsel/konga:latest
           env:
-            - name: NODE_ENV
-              value: "production"
-            - name: KONGA_BACKEND_URL
-              value: "https://kong-manager.nccnaga.com:8443"
             - name: DB_ADAPTER
               value: "sqlite"
-            - name: KONGA_JWT_SECRET
+            - name: NODE_ENV
+              value: "production"
+            - name: TOKEN_SECRET
               valueFrom:
                 secretKeyRef:
                   name: konga-secret
-                  key: KONGA_JWT_SECRET
+                  key: KONGA_ADMIN_PASSWORD
           ports:
             - containerPort: 1337
-              name: http
           volumeMounts:
-            - name: tls-cert
-              mountPath: /etc/secrets/konga
-              readOnly: true
+            - name: konga-data
+              mountPath: /app/konga.db  # SQLite DB path inside container
+              subPath: konga.db
       volumes:
-        - name: tls-cert
-          secret:
-            secretName: kong-manager-tls
+        - name: konga-data
+          persistentVolumeClaim:
+            claimName: konga-pvc
+
 ---
+# 4. Konga Service
 apiVersion: v1
 kind: Service
 metadata:
   name: konga
   namespace: default
 spec:
-  type: LoadBalancer
-  ports:
-    - port: 443
-      targetPort: 1337
-      protocol: TCP
-      name: https
+  type: ClusterIP
   selector:
     app: konga
+  ports:
+    - port: 1337
+      targetPort: 1337
+      protocol: TCP
+
 ---
+# 5. Ingress for Konga under existing domain
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: konga
   namespace: default
   annotations:
-    konghq.com/strip-path: "false"
+    konghq.com/strip-path: "true"
 spec:
   ingressClassName: kong
   tls:
     - hosts:
-        - konga.nccnaga.com
+        - kong-manager.nccnaga.com
       secretName: kong-manager-tls
   rules:
-    - host: konga.nccnaga.com
+    - host: kong-manager.nccnaga.com
       http:
         paths:
-          - path: /
+          - path: /konga
             pathType: Prefix
             backend:
               service:
                 name: konga
                 port:
-                  number: 443
+                  number: 1337

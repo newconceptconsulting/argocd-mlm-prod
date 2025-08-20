@@ -1,91 +1,54 @@
-# Kong Manager ConfigMap for DB-less mode
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: kong-manager-values
-  namespace: default
-data:
-  values.yaml: |
-    replicaCount: 1
-    env:
-      KONG_DATABASE: "off"
-      KONG_PROXY_LISTEN: "0.0.0.0:8000, 0.0.0.0:8443 http2 ssl"
-      KONG_ADMIN_LISTEN: "0.0.0.0:8444 ssl"
-      KONG_PROXY_ACCESS_LOG: "/dev/stdout"
-      KONG_PROXY_ERROR_LOG: "/dev/stderr"
-      KONG_ADMIN_ACCESS_LOG: "/dev/stdout"
-      KONG_ADMIN_ERROR_LOG: "/dev/stderr"
-    ingressController:
-      enabled: false
-    admin:
-      enabled: true
-      http:
-        enabled: true
-      tls:
-        enabled: false
----
-# Deployment for Kong Manager
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: kong-manager
-  namespace: default
-  labels:
-    app: kong-manager
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: kong-manager
-  template:
-    metadata:
-      labels:
-        app: kong-manager
-    spec:
-      containers:
-        - name: kong
-          image: kong:3.9
-          env:
-            - name: KONG_DATABASE
-              value: "off"
-            - name: KONG_ADMIN_LISTEN
-              value: "0.0.0.0:8444 ssl"
-            - name: KONG_PROXY_LISTEN
-              value: "0.0.0.0:8000,0.0.0.0:8443 http2 ssl"
-            - name: KONG_PROXY_ACCESS_LOG
-              value: "/dev/stdout"
-            - name: KONG_PROXY_ERROR_LOG
-              value: "/dev/stderr"
-            - name: KONG_ADMIN_ACCESS_LOG
-              value: "/dev/stdout"
-            - name: KONG_ADMIN_ERROR_LOG
-              value: "/dev/stderr"
-          ports:
-            - containerPort: 8444
-              name: admin-https
-            - containerPort: 8000
-              name: proxy-http
-            - containerPort: 8443
-              name: proxy-https
----
-# Service for Kong Manager (LoadBalancer)
 apiVersion: v1
 kind: Service
 metadata:
   name: kong-manager
   namespace: default
-  labels:
-    app: kong-manager
 spec:
   type: LoadBalancer
   selector:
-    app: kong-manager
+    app: kong
+    component: manager
   ports:
-    - name: admin-https
-      port: 8444
-      targetPort: 8444
+    - name: http
+      port: 8002
+      targetPort: 8002
 ---
-# Optional Ingress for Kong Manager GUI
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kong-manager
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kong
+      component: manager
+  template:
+    metadata:
+      labels:
+        app: kong
+        component: manager
+    spec:
+      containers:
+        - name: manager
+          image: kong:3.9
+          env:
+            - name: KONG_DATABASE
+              value: "off"
+            - name: KONG_DECLARATIVE_CONFIG
+              value: "/kong/declarative/kong.yml"
+            - name: KONG_ADMIN_LISTEN
+              value: "0.0.0.0:8002 ssl"
+            - name: KONG_PROXY_LISTEN
+              value: "0.0.0.0:8000, 0.0.0.0:8443 http2 ssl"
+            - name: KONG_ADMIN_ACCESS_LOG
+              value: "/dev/stdout"
+            - name: KONG_ADMIN_ERROR_LOG
+              value: "/dev/stderr"
+          ports:
+            - containerPort: 8002
+---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -96,7 +59,7 @@ metadata:
 spec:
   ingressClassName: kong
   rules:
-    - host: manager.mlm.nccnaga.com
+    - host: kong-manager.nccnaga.com
       http:
         paths:
           - path: /
@@ -105,4 +68,8 @@ spec:
               service:
                 name: kong-manager
                 port:
-                  number: 8444
+                  number: 8002
+  tls:
+    - hosts:
+        - kong-manager.nccnaga.com
+      secretName: kong-manager-tls

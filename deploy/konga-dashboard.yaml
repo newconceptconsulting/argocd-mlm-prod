@@ -48,7 +48,7 @@ spec:
             - name: DB_ADAPTER
               value: "sqlite"
             - name: DB_URI
-              value: "sqlite:/app/db/database.sqlite"
+              value: "sqlite:/sqlite:/app/db/konga.db"
             - name: NODE_ENV
               value: "production"
             - name: TOKEN_SECRET

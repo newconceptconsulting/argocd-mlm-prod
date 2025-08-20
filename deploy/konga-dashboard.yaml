@@ -94,6 +94,44 @@ type: Opaque
 data:
   KONGA_ADMIN_PASSWORD: TGFzKDEyMk1uYTIxMyYq   # base64 password
 ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15
+          env:
+            - name: POSTGRES_USER
+              value: "konga"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: konga-db-secret
+                  key: DB_PASSWORD
+            - name: POSTGRES_DB
+              value: "konga"
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: postgres-pvc
+---
 # 8. Konga Service
 apiVersion: v1
 kind: Service

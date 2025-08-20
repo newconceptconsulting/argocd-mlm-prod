@@ -38,10 +38,12 @@ spec:
           value: konga
         - name: POSTGRES_PASSWORD
           value: konga_password
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
         ports:
         - containerPort: 5432
         volumeMounts:
-        - name: PGDATA
+        - name: postgres-data
           mountPath: /var/lib/postgresql/data/pgdata
       volumes:
       - name: postgres-data

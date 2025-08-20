@@ -47,8 +47,8 @@ spec:
           env:
             - name: DB_ADAPTER
               value: "sqlite"
-            - name: DB_NAME
-              value: "/app/db/database.sqlite"   # Correct path for SQLite
+            - name: DB_URI
+              value: "sqlite:/app/db/database.sqlite"
             - name: NODE_ENV
               value: "production"
             - name: TOKEN_SECRET

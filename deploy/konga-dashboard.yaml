@@ -73,16 +73,16 @@ metadata:
   name: konga
   namespace: default
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   selector:
     app: konga
   ports:
-    - port: 1337
+    - protocol: TCP
+      port: 443
       targetPort: 1337
-      protocol: TCP
 
 ---
-# 5. Ingress for Konga under existing domain
+# 5. Ingress for Konga at root of existing domain
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -100,7 +100,7 @@ spec:
     - host: kong-manager.nccnaga.com
       http:
         paths:
-          - path: /konga
+          - path: /
             pathType: Prefix
             backend:
               service:

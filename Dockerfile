@@ -1,18 +1,14 @@
+# Use a stable Konga version
 FROM pantsel/konga:latest
 
-# Switch to root to install deps
+# Switch to root to ensure permissions if needed
 USER root
 
-# Upgrade sails-postgresql for Postgres 12+
-RUN npm uninstall sails-postgresql && \
-    npm install sails-postgresql@^3.0.0 --save && \
-    npm cache clean --force
-
-# Fix permissions
+# Ensure node modules are owned by node user
 RUN chown -R node:node /app
 
-# Switch back to node user
+# Switch back to non-root for security
 USER node
 
-# Do NOT override CMD or ENTRYPOINT
-# The original image entrypoint will handle startup
+# Default command to start Konga
+CMD ["node", "app.js"]

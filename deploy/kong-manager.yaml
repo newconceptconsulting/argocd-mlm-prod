@@ -1,4 +1,20 @@
-# Kong Manager Deployment
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kong-manager-declarative
+  namespace: default
+data:
+  kong.yml: |
+    _format_version: "2.1"
+    services:
+      - name: httpbin
+        url: http://httpbin.default.svc.cluster.local:80
+        routes:
+          - name: httpbin-route
+            paths:
+              - /
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -15,45 +31,59 @@ spec:
         app: kong-manager
     spec:
       containers:
-        - name: manager
-          image: kong/kong:3.9.0
+        - name: kong-manager
+          image: kong:3.9
           env:
             - name: KONG_DATABASE
               value: "off"
             - name: KONG_DECLARATIVE_CONFIG
-              value: /kong/declarative/kong.yml
-            - name: KONG_ADMIN_LISTEN
-              value: "0.0.0.0:8444 ssl"
+              value: "/kong/declarative/kong.yml"
+            - name: KONG_PROXY_ACCESS_LOG
+              value: "/dev/stdout"
+            - name: KONG_PROXY_ERROR_LOG
+              value: "/dev/stderr"
             - name: KONG_ADMIN_ACCESS_LOG
               value: "/dev/stdout"
             - name: KONG_ADMIN_ERROR_LOG
               value: "/dev/stderr"
-            - name: KONG_ADMIN_TLS_CERT
-              value: /kong/tls/tls.crt
-            - name: KONG_ADMIN_TLS_KEY
-              value: /kong/tls/tls.key
+            - name: KONG_ADMIN_LISTEN
+              value: "0.0.0.0:8001 ssl"
           ports:
-            - containerPort: 8444
+            - containerPort: 8001
               name: admin
           volumeMounts:
-            - name: kong-declarative
+            - name: declarative
               mountPath: /kong/declarative
-            - name: kong-tls
-              mountPath: /kong/tls
+            - name: tls-cert
+              mountPath: /etc/secrets/kong-manager
               readOnly: true
       volumes:
-        - name: kong-declarative
+        - name: declarative
           configMap:
             name: kong-manager-declarative
-        - name: kong-tls
+        - name: tls-cert
           secret:
-            secretName: kong-manager-tls  # <--- uses your existing secret
+            secretName: kong-manager-tls
 ---
-# Kong Manager Ingress
+apiVersion: v1
+kind: Service
+metadata:
+  name: kong-manager
+  namespace: default
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 443
+      targetPort: 8001
+      protocol: TCP
+      name: https
+  selector:
+    app: kong-manager
+---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: kong-manager-ingress
+  name: kong-manager
   namespace: default
   annotations:
     konghq.com/strip-path: "false"
@@ -62,7 +92,7 @@ spec:
   tls:
     - hosts:
         - kong-manager.nccnaga.com
-      secretName: kong-manager-tls  # <--- uses your existing secret
+      secretName: kong-manager-tls
   rules:
     - host: kong-manager.nccnaga.com
       http:
@@ -73,5 +103,4 @@ spec:
               service:
                 name: kong-manager
                 port:
-                  number: 8444
-
+                  number: 443

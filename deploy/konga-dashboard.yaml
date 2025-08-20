@@ -1,13 +1,15 @@
 ---
-# 1. Postgres Secret
+# 1. Secret for Konga DB credentials
 apiVersion: v1
 kind: Secret
 metadata:
-  name: postgres-secret
+  name: konga-db-secret
   namespace: default
 type: Opaque
 data:
-  POSTGRES_PASSWORD: cG9zdGdyZXM=   # base64 for 'postgres'
+  # Base64 encoded values
+  DB_USER: a29uZ2E=        # "konga"
+  DB_PASSWORD: cG9zdGdyZXM= # "postgres"
 
 ---
 # 2. Postgres PVC
@@ -24,47 +26,48 @@ spec:
       storage: 2Gi
 
 ---
-# 3. Postgres Deployment (forcing MD5 auth)
+# 3. Konga Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: postgres
+  name: konga
   namespace: default
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: postgres
+      app: konga
   template:
     metadata:
       labels:
-        app: postgres
+        app: konga
     spec:
       containers:
-        - name: postgres
-          image: postgres:15
+        - name: konga
+          image: pantsel/konga:latest
           env:
-            - name: POSTGRES_DB
-              value: konga
-            - name: POSTGRES_USER
-              value: postgres
-            - name: POSTGRES_PASSWORD
+            - name: DB_ADAPTER
+              value: "postgres"
+            - name: DB_HOST
+              value: "postgres.default.svc.cluster.local"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USER
               valueFrom:
                 secretKeyRef:
-                  name: postgres-secret
-                  key: POSTGRES_PASSWORD
-            - name: PGDATA
-              value: /var/lib/postgresql/data/pgdata/k8s  # subdirectory
+                  name: konga-db-secret
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: konga-db-secret
+                  key: DB_PASSWORD
+            - name: DB_DATABASE
+              value: "konga"
+            - name: NODE_ENV
+              value: "production"
           ports:
-            - containerPort: 5432
-          volumeMounts:
-            - name: postgres-data
-              mountPath: /var/lib/postgresql/data/pgdata
-      volumes:
-        - name: postgres-data
-          persistentVolumeClaim:
-            claimName: postgres-pvc
-
+            - containerPort: 1337
 ---
 # 4. Postgres Service
 apiVersion: v1
@@ -154,7 +157,7 @@ spec:
       targetPort: 1337
 
 ---
-# 9. Konga Ingress
+# 5. Ingress for Konga under existing domain
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -178,4 +181,4 @@ spec:
               service:
                 name: konga
                 port:
-                  number: 1337
+                  number: 443

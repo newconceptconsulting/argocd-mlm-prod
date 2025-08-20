@@ -102,7 +102,7 @@ spec:
         - name: docker-hub
       containers:
         - name: konga
-          image: newconceptconsulting/my-konga:2.1
+          image: newconceptconsulting/my-konga:2.2
           env:
             - name: DB_ADAPTER
               value: "postgres"

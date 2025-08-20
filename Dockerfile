@@ -8,5 +8,5 @@ RUN npm uninstall sails-postgresql && \
     npm cache clean --force
 
 USER node
+# Keep the original entrypoint and CMD
 
-CMD ["node", "app.js"]

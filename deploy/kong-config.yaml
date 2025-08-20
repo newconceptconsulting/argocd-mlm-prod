@@ -1,10 +1,12 @@
 # argo-kong-httpbin.yaml
+
+# 1️⃣ Namespace
 apiVersion: v1
 kind: Namespace
 metadata:
   name: default
 ---
-# Kong DB-less Deployment via Helm values using ConfigMap
+# 2️⃣ Kong DB-less ConfigMap (Helm values)
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -20,7 +22,7 @@ data:
       KONG_PROXY_ERROR_LOG: "/dev/stderr"
       KONG_ADMIN_ACCESS_LOG: "/dev/stdout"
       KONG_ADMIN_ERROR_LOG: "/dev/stderr"
-      KONG_ADMIN_LISTEN: "127.0.0.1:8444 ssl"
+      KONG_ADMIN_LISTEN: "0.0.0.0:8444 ssl"  # changed from 127.0.0.1
       KONG_PROXY_LISTEN: "0.0.0.0:8000, 0.0.0.0:8443 http2 ssl"
       KONG_STATUS_LISTEN: "0.0.0.0:8100"
     ingressController:
@@ -46,12 +48,12 @@ data:
       enabled: true
       http:
         enabled: true
-        host: 127.0.0.1
+        host: 0.0.0.0   # changed from 127.0.0.1
         port: 8444
       tls:
         enabled: true
 ---
-# KONG MANAGER EXPOSE
+# 3️⃣ Kong Manager Ingress (points to Admin API service)
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -69,20 +71,20 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: kong-manager
+                name: kong-kong-admin   # Admin API service provided by Helm chart
                 port:
-                  number: 8002
+                  number: 8444
 ---
-# Ingress with TLS
+# 4️⃣ HTTPBIN Ingress with TLS
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: httpbin-ingress
   namespace: default
   annotations:
-    kubernetes.io/ingress.class: "kong"
     konghq.com/strip-path: "true"
 spec:
+  ingressClassName: kong
   tls:
     - hosts:
         - mlm.nccnaga.com
@@ -97,4 +99,4 @@ spec:
               service:
                 name: httpbin
                 port:
-                  number: 80
+                  number: 80   # removed trailing dot

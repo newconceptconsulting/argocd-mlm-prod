@@ -7,9 +7,9 @@ metadata:
   namespace: default
 type: Opaque
 data:
-  POSTGRES_USER: a29uZ2E=           # base64 of 'konga'
-  POSTGRES_PASSWORD: U29tZVBhc3N3b3Jk # base64 of 'SomePassword'
-  POSTGRES_DB: a29uZ2E              # base64 of 'konga'
+  POSTGRES_USER: a29uZ2E=        # 'konga'
+  POSTGRES_PASSWORD: U29tZVBhc3N3b3Jk # 'SomePassword'
+  POSTGRES_DB: a29uZ2E=           # 'konga'
 
 ---
 # 2. Postgres PVC

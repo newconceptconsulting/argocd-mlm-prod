@@ -47,6 +47,8 @@ spec:
           env:
             - name: DB_ADAPTER
               value: "sqlite"
+            - name: DB_NAME
+              value: "/app/db/konga.db"
             - name: NODE_ENV
               value: "production"
             - name: TOKEN_SECRET
@@ -58,8 +60,7 @@ spec:
             - containerPort: 1337
           volumeMounts:
             - name: konga-data
-              mountPath: /app/konga.db  # SQLite DB path inside container
-              subPath: konga.db
+              mountPath: /app/db   # mount folder, not file
       volumes:
         - name: konga-data
           persistentVolumeClaim:
@@ -82,14 +83,14 @@ spec:
       targetPort: 1337
 
 ---
-# 5. Ingress for Konga at root of existing domain
+# 5. Ingress for Konga under existing domain
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: konga
   namespace: default
   annotations:
-    konghq.com/strip-path: "true"
+    konghq.com/strip-path: "false"
 spec:
   ingressClassName: kong
   tls:
@@ -100,10 +101,10 @@ spec:
     - host: kong-manager.nccnaga.com
       http:
         paths:
-          - path: /
+          - path: /konga
             pathType: Prefix
             backend:
               service:
                 name: konga
                 port:
-                  number: 1337
+                  number: 443

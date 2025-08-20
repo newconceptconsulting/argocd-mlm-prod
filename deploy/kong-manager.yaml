@@ -14,6 +14,10 @@ data:
           - name: httpbin-route
             paths:
               - /
+    plugins:
+      - name: basic-auth
+        config:
+          hide_credentials: false
 ---
 apiVersion: apps/v1
 kind: Deployment

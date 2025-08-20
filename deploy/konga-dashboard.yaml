@@ -7,8 +7,8 @@ metadata:
   namespace: default
 type: Opaque
 data:
-  # base64-encoded password (example: 'LastPass123!' -> TGFzdFBhc3MxMjMh)
-  KONGA_ADMIN_PASSWORD: TGFzdFBhc3MxMjMh
+  # base64-encoded password (example: 'Las(122MnA213&*' -> TGFzKDEyMk1uYTIxMyYq)
+  KONGA_ADMIN_PASSWORD: TGFzKDEyMk1uYTIxMyYq
 
 ---
 # 2. PersistentVolumeClaim for SQLite database
@@ -48,7 +48,7 @@ spec:
             - name: DB_ADAPTER
               value: "sqlite"
             - name: DB_NAME
-              value: "/app/db/database.sqlite"
+              value: "/app/db/database.sqlite"   # Correct path for SQLite
             - name: NODE_ENV
               value: "production"
             - name: TOKEN_SECRET
@@ -60,7 +60,8 @@ spec:
             - containerPort: 1337
           volumeMounts:
             - name: konga-data
-              mountPath: /app/db
+              mountPath: /app/db/database.sqlite
+              subPath: database.sqlite
       volumes:
         - name: konga-data
           persistentVolumeClaim:
@@ -95,8 +96,8 @@ spec:
   ingressClassName: kong
   tls:
     - hosts:
-        - kong-manager.nccnaga.com  # your existing domain
-      secretName: kong-manager-tls  # use the same TLS secret
+        - kong-manager.nccnaga.com
+      secretName: kong-manager-tls
   rules:
     - host: kong-manager.nccnaga.com
       http:

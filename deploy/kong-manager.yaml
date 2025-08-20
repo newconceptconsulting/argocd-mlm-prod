@@ -22,7 +22,7 @@ data:
       http:
         enabled: true
       tls:
-        enabled: true
+        enabled: false
 ---
 # Deployment for Kong Manager
 apiVersion: apps/v1

@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: konga
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: konga
+  template:
+    metadata:
+      labels:
+        app: konga
+    spec:
+      containers:
+        - name: konga
+          image: pantsel/konga:latest
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: KONGA_BACKEND_URL
+              value: "https://kong-manager.nccnaga.com:8443"
+            - name: DB_ADAPTER
+              value: "sqlite"
+            - name: KONGA_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: konga-secret
+                  key: KONGA_JWT_SECRET
+          ports:
+            - containerPort: 1337
+              name: http
+          volumeMounts:
+            - name: tls-cert
+              mountPath: /etc/secrets/konga
+              readOnly: true
+      volumes:
+        - name: tls-cert
+          secret:
+            secretName: kong-manager-tls
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: konga
+  namespace: default
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 443
+      targetPort: 1337
+      protocol: TCP
+      name: https
+  selector:
+    app: konga
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: konga
+  namespace: default
+  annotations:
+    konghq.com/strip-path: "false"
+spec:
+  ingressClassName: kong
+  tls:
+    - hosts:
+        - konga.nccnaga.com
+      secretName: kong-manager-tls
+  rules:
+    - host: konga.nccnaga.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: konga
+                port:
+                  number: 443

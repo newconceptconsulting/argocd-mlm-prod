@@ -104,6 +104,8 @@ spec:
       labels:
         app: konga
     spec:
+      imagePullSecrets:
+        - name: docker-hub   # <--- added to pull private DockerHub image
       containers:
         - name: konga
           image: newconceptconsulting/my-konga:latest

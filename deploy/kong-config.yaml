@@ -51,40 +51,27 @@ data:
       tls:
         enabled: true
 ---
-# httpbin Deployment + Service
-apiVersion: v1
-kind: Service
+# KONG MANAGER EXPOSE
+apiVersion: networking.k8s.io/v1
+kind: Ingress
 metadata:
-  name: httpbin
+  name: kong-manager
   namespace: default
+  annotations:
+    konghq.com/strip-path: "false"
 spec:
-  selector:
-    app: httpbin
-  ports:
-    - name: http
-      port: 80
-      targetPort: 80
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: httpbin
-  namespace: default
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: httpbin
-  template:
-    metadata:
-      labels:
-        app: httpbin
-    spec:
-      containers:
-        - name: httpbin
-          image: kennethreitz/httpbin
-          ports:
-            - containerPort: 80
+  ingressClassName: kong
+  rules:
+    - host: manager.mlm.nccnaga.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kong-manager
+                port:
+                  number: 8002
 ---
 # Ingress with TLS
 apiVersion: networking.k8s.io/v1

@@ -7,25 +7,11 @@ metadata:
   namespace: default
 type: Opaque
 data:
-  DB_USER: a29uZ2E=        # "konga"
-  DB_PASSWORD: cG9zdGdyZXM= # "postgres"
+  DB_USER: a29uZ2E=          # "konga"
+  DB_PASSWORD: cG9zdGdyZXM=  # "postgres"
 
 ---
-# 2. Postgres PVC
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: postgres-pvc
-  namespace: default
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 2Gi
-
----
-# 3. Postgres Deployment
+# 2. Postgres Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -46,9 +32,15 @@ spec:
           image: postgres:15
           env:
             - name: POSTGRES_USER
-              value: "postgres"
+              valueFrom:
+                secretKeyRef:
+                  name: konga-db-secret
+                  key: DB_USER
             - name: POSTGRES_PASSWORD
-              value: "postgres"
+              valueFrom:
+                secretKeyRef:
+                  name: konga-db-secret
+                  key: DB_PASSWORD
             - name: POSTGRES_DB
               value: "konga"
           ports:
@@ -60,6 +52,20 @@ spec:
         - name: postgres-data
           persistentVolumeClaim:
             claimName: postgres-pvc
+
+---
+# 3. Postgres PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
 
 ---
 # 4. Postgres Service
@@ -74,21 +80,9 @@ spec:
   ports:
     - port: 5432
       targetPort: 5432
-      protocol: TCP
 
 ---
-# 5. Konga Secret for Admin password
-apiVersion: v1
-kind: Secret
-metadata:
-  name: konga-secret
-  namespace: default
-type: Opaque
-data:
-  KONGA_ADMIN_PASSWORD: TGFzKDEyMk1uYTIxMyYq   # base64 password
-
----
-# 6. Konga Deployment
+# 5. Konga Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -105,11 +99,10 @@ spec:
         app: konga
     spec:
       imagePullSecrets:
-        - name: docker-hub   # <--- added to pull private DockerHub image
+        - name: docker-hub
       containers:
         - name: konga
-          image: newconceptconsulting/my-konga:1.3
-          imagePullPolicy: Always
+          image: newconceptconsulting/my-konga:1.4
           env:
             - name: DB_ADAPTER
               value: "postgres"
@@ -131,13 +124,11 @@ spec:
               value: "konga"
             - name: NODE_ENV
               value: "production"
-            - name: DB_SSL
-              value: "false"
           ports:
             - containerPort: 1337
 
 ---
-# 7. Konga Service
+# 6. Konga Service
 apiVersion: v1
 kind: Service
 metadata:
@@ -151,30 +142,3 @@ spec:
     - protocol: TCP
       port: 443
       targetPort: 1337
-
----
-# 8. Ingress for Konga
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: konga
-  namespace: default
-  annotations:
-    konghq.com/strip-path: "false"
-spec:
-  ingressClassName: kong
-  tls:
-    - hosts:
-        - kong-manager.nccnaga.com
-      secretName: kong-manager-tls
-  rules:
-    - host: kong-manager.nccnaga.com
-      http:
-        paths:
-          - path: /konga
-            pathType: Prefix
-            backend:
-              service:
-                name: konga
-                port:
-                  number: 443

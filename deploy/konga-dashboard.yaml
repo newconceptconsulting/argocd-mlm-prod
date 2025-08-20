@@ -25,7 +25,70 @@ spec:
       storage: 2Gi
 
 ---
-# 3. Konga Deployment
+# 3. Postgres Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15
+          env:
+            - name: POSTGRES_USER
+              value: "postgres"
+            - name: POSTGRES_PASSWORD
+              value: "postgres"
+            - name: POSTGRES_DB
+              value: "konga"
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: postgres-pvc
+
+---
+# 4. Postgres Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: default
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+      protocol: TCP
+
+---
+# 5. Konga Secret for Admin password
+apiVersion: v1
+kind: Secret
+metadata:
+  name: konga-secret
+  namespace: default
+type: Opaque
+data:
+  KONGA_ADMIN_PASSWORD: TGFzKDEyMk1uYTIxMyYq   # base64 password
+
+---
+# 6. Konga Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -65,37 +128,13 @@ spec:
               value: "konga"
             - name: NODE_ENV
               value: "production"
+            - name: DB_SSL
+              value: "false"
           ports:
             - containerPort: 1337
 
 ---
-# 4. Postgres Service
-apiVersion: v1
-kind: Service
-metadata:
-  name: postgres
-  namespace: default
-spec:
-  selector:
-    app: postgres
-  ports:
-    - port: 5432
-      targetPort: 5432
-      protocol: TCP
-
----
-# 5. Konga Secret for Admin password
-apiVersion: v1
-kind: Secret
-metadata:
-  name: konga-secret
-  namespace: default
-type: Opaque
-data:
-  KONGA_ADMIN_PASSWORD: TGFzKDEyMk1uYTIxMyYq   # base64 password
-
----
-# 6. Konga Service
+# 7. Konga Service
 apiVersion: v1
 kind: Service
 metadata:
@@ -111,7 +150,7 @@ spec:
       targetPort: 1337
 
 ---
-# 7. Ingress for Konga under existing domain
+# 8. Ingress for Konga
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:

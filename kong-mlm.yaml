@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlm-backend
+  namespace: default
+labels:
+    app: mlm-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mlm-backend
+  template:
+    metadata:
+      labels:
+        app: mlm-backend
+    spec:
+      containers:
+      - name: mlm-backend
+        image: <YOUR_BACKEND_IMAGE>   # 🔄 Replace with your real image
+        ports:
+        - containerPort: 8080
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlm-backend
+  namespace: default
+spec:
+  selector:
+    app: mlm-backend
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+  type: ClusterIP
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mlm-ingress
+  namespace: default
+  annotations:
+    konghq.com/strip-path: "true"
+spec:
+  ingressClassName: kong
+  tls:
+  - hosts:
+    - mlm.nccnaga.com
+    secretName: mlm.nccnaga.com-tls
+  rules:
+  - host: mlm.nccnaga.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: mlm-backend
+            port:
+              number: 80

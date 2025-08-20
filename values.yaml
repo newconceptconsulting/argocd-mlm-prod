@@ -1,0 +1,61 @@
+# values.yaml for Kong Helm chart in DB-less mode with TLS and Ingress Controller
+
+env:
+  KONG_DATABASE: "off"
+  KONG_DECLARATIVE_CONFIG: "/kong/declarative/kong.yml"
+  KONG_PROXY_ACCESS_LOG: "/dev/stdout"
+  KONG_PROXY_ERROR_LOG: "/dev/stderr"
+  KONG_ADMIN_ACCESS_LOG: "/dev/stdout"
+  KONG_ADMIN_ERROR_LOG: "/dev/stderr"
+  KONG_ADMIN_LISTEN: "127.0.0.1:8444 ssl"
+  KONG_PROXY_LISTEN: "0.0.0.0:8000, 0.0.0.0:8443 http2 ssl"
+  KONG_STATUS_LISTEN: "0.0.0.0:8100"
+  
+admin:
+  enabled: true
+  http:
+    enabled: true
+    host: 127.0.0.1
+    port: 8444
+  tls:
+    enabled: true
+
+ingressController:
+  enabled: true
+  ingressClass: kong
+  publishService:
+    enabled: true
+  replicaCount: 1
+  containerSecurityContext:
+    runAsUser: 101
+    runAsNonRoot: true
+  admissionWebhooks:
+    enabled: false
+
+proxy:
+  type: LoadBalancer
+  annotations: {}
+  http:
+    enabled: true
+    servicePort: 80
+    containerPort: 8000
+  tls:
+    enabled: true
+    servicePort: 443
+    containerPort: 8443
+    secretName: mlm.nccnaga.com-tls
+
+ingressController:
+  enabled: true
+  ingressClass: kong
+  installCRDs: false
+  env:
+    CONTROLLER_KONG_ADMIN_TLS_SKIP_VERIFY: "true"
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 500m
+    memory: 1Gi

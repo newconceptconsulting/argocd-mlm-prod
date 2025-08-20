@@ -1,0 +1,189 @@
+---
+# 1. Secret for Postgres credentials (Konga DB)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: konga-db-secret
+  namespace: default
+type: Opaque
+data:
+  # base64 encoded: konga / postgres
+  DB_USER: a29uZ2E=
+  DB_PASSWORD: cG9zdGdyZXM=
+
+---
+# 2. PVC for Postgres data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+
+---
+# 3. Postgres Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:13
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: konga-db-secret
+                  key: DB_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: konga-db-secret
+                  key: DB_PASSWORD
+            - name: POSTGRES_DB
+              value: konga
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata   # 👈 Fix here
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: postgres-pvc
+
+---
+# 4. Postgres Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: default
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+      protocol: TCP
+
+---
+# 5. Secret for Konga admin password
+apiVersion: v1
+kind: Secret
+metadata:
+  name: konga-secret
+  namespace: default
+type: Opaque
+data:
+  KONGA_ADMIN_PASSWORD: TGFzKDEyMk1uYTIxMyYq
+
+---
+# 6. Konga Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: konga
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: konga
+  template:
+    metadata:
+      labels:
+        app: konga
+    spec:
+      containers:
+        - name: konga
+          image: pantsel/konga:latest
+          env:
+            - name: DB_ADAPTER
+              value: "postgres"
+            - name: DB_HOST
+              value: "postgres.default.svc.cluster.local"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: konga-db-secret
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: konga-db-secret
+                  key: DB_PASSWORD
+            - name: DB_DATABASE
+              value: "konga"
+            - name: NODE_ENV
+              value: "production"
+            - name: TOKEN_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: konga-secret
+                  key: KONGA_ADMIN_PASSWORD
+          ports:
+            - containerPort: 1337
+
+---
+# 7. Konga Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: konga
+  namespace: default
+spec:
+  type: LoadBalancer
+  selector:
+    app: konga
+  ports:
+    - protocol: TCP
+      port: 443
+      targetPort: 1337
+
+---
+# 8. Ingress for Konga
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: konga
+  namespace: default
+  annotations:
+    konghq.com/strip-path: "false"
+spec:
+  ingressClassName: kong
+  tls:
+    - hosts:
+        - kong-manager.nccnaga.com
+      secretName: kong-manager-tls
+  rules:
+    - host: kong-manager.nccnaga.com
+      http:
+        paths:
+          - path: /konga
+            pathType: Prefix
+            backend:
+              service:
+                name: konga
+                port:
+                  number: 443

@@ -1,5 +1,77 @@
+# 1. PostgreSQL Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: konga-db-secret
+  namespace: default
+type: Opaque
+data:
+  POSTGRES_USER: a29uZ2E=        # "konga" base64
+  POSTGRES_PASSWORD: cGFzc3dvcmQ= # "password" base64
+  POSTGRES_DB: a29uZ2E=           # "konga" base64
+
 ---
-# 1. Secret for Konga admin password
+# 2. PostgreSQL Deployment + PVC
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: konga-postgres
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: konga-postgres
+  template:
+    metadata:
+      labels:
+        app: konga-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: konga-db-secret
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: konga-db-secret
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: konga-db-secret
+                  key: POSTGRES_DB
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: pgdata
+          persistentVolumeClaim:
+            claimName: konga-pg-pvc
+
+---
+# 3. PostgreSQL PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: konga-pg-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+
+---
+# 4. Konga Secret for admin password
 apiVersion: v1
 kind: Secret
 metadata:
@@ -7,32 +79,17 @@ metadata:
   namespace: default
 type: Opaque
 data:
-  # base64-encoded password (example: 'Las(122MnA213&*' -> TGFzKDEyMk1uYTIxMyYq)
   KONGA_ADMIN_PASSWORD: TGFzKDEyMk1uYTIxMyYq
 
 ---
-# 2. PersistentVolumeClaim for SQLite database
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: konga-pvc
-  namespace: default
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
-
----
-# 3. Konga Deployment
+# 5. Konga Deployment (multi-replica)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: konga
   namespace: default
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: konga
@@ -46,9 +103,26 @@ spec:
           image: pantsel/konga:latest
           env:
             - name: DB_ADAPTER
-              value: "sqlite"
-            - name: DB_URI
-              value: "sqlite:/sqlite:/app/db/konga.db"
+              value: "postgres"
+            - name: DB_HOST
+              value: "konga-postgres.default.svc.cluster.local"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: konga-db-secret
+                  key: POSTGRES_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: konga-db-secret
+                  key: POSTGRES_PASSWORD
+            - name: DB_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: konga-db-secret
+                  key: POSTGRES_DB
             - name: NODE_ENV
               value: "production"
             - name: TOKEN_SECRET
@@ -58,17 +132,9 @@ spec:
                   key: KONGA_ADMIN_PASSWORD
           ports:
             - containerPort: 1337
-          volumeMounts:
-            - name: konga-data
-              mountPath: /app/db/database.sqlite
-              subPath: database.sqlite
-      volumes:
-        - name: konga-data
-          persistentVolumeClaim:
-            claimName: konga-pvc
 
 ---
-# 4. Konga Service
+# 6. Konga Service
 apiVersion: v1
 kind: Service
 metadata:
@@ -84,7 +150,7 @@ spec:
       targetPort: 1337
 
 ---
-# 5. Ingress for Konga under existing domain
+# 7. Ingress for Konga
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:

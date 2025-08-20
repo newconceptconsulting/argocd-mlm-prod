@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: httpbin
   namespace: default
-labels:
+  labels:
     app: httpbin
 spec:
   replicas: 1
@@ -43,21 +43,22 @@ metadata:
   name: httpbin-ingress
   namespace: default
   annotations:
+    kubernetes.io/ingress.class: "kong"
     konghq.com/strip-path: "true"
 spec:
-  ingressClassName: kong
   tls:
-  - hosts:
-    - mlm.nccnaga.com
-    secretName: mlm.nccnaga.com-tls
+    - hosts:
+        - mlm.nccnaga.com
+      secretName: mlm.nccnaga.com-tls
   rules:
-  - host: mlm.nccnaga.com
-    http:
-      paths:
-      - path: /httpbin
-        pathType: Prefix
-        backend:
-          service:
-            name: httpbin
-            port:
-              number: 80
+    - host: mlm.nccnaga.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: httpbin
+                port:
+                  number: 80
+

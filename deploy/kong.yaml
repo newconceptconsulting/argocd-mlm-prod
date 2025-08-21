@@ -18,10 +18,6 @@ data:
             protocols:
               - http
               - https
-    certificates:
-      - name: mlm-nccnaga-cert
-        cert: /etc/secrets/kong/tls.crt
-        key: /etc/secrets/kong/tls.key
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -47,7 +43,7 @@ spec:
             - name: KONG_DECLARATIVE_CONFIG
               value: "/kong/declarative/kong.yaml"
             - name: KONG_PROXY_LISTEN
-              value: "0.0.0.0:8000, 0.0.0.0:8443 ssl"
+              value: "0.0.0.0:8000, 0.0.0.0:8443 ssl crt=/etc/secrets/kong/tls.crt key=/etc/secrets/kong/tls.key"
             - name: KONG_ADMIN_LISTEN
               value: "0.0.0.0:8001, 0.0.0.0:8444 ssl"
           volumeMounts:

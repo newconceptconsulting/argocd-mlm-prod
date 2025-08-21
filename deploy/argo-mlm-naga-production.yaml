@@ -8,9 +8,10 @@ spec:
   source:
     repoURL: https://github.com/newconceptconsulting/argocd-mlm-prod
     targetRevision: main
-    path: deploy/all
-    kustomize:
-      namePrefix: ""
+    path: deploy   # your Git path
+    helm:
+      valueFiles:
+        - kong-values.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: default
@@ -20,9 +21,3 @@ spec:
     automated:
       selfHeal: true
       prune: true
-  ignoreDifferences:
-    - group: apisix.apache.org
-      kind: ApisixRoute
-      jsonPointers:
-        - /metadata/annotations/kubectl.kubernetes.io~1last-applied-configuration
-        - /spec/plugins

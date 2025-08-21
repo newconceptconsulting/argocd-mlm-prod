@@ -1,4 +1,5 @@
-replicaCount: 1  # keep 1 for now to fit in memory
+# kong-values.yaml
+replicaCount: 1
 
 env:
   KONG_DATABASE: "off"
@@ -8,7 +9,7 @@ env:
   KONG_ADMIN_ACCESS_LOG: "/dev/stdout"
   KONG_ADMIN_ERROR_LOG: "/dev/stderr"
   KONG_ADMIN_LISTEN: "0.0.0.0:8444 ssl"
-  KONG_PROXY_LISTEN: "0.0.0.0:8000, 0.0.0.0:8443 http2 ssl"
+  KONG_PROXY_LISTEN: "0.0.0.0:8000,0.0.0.0:8443 http2 ssl"
   KONG_STATUS_LISTEN: "0.0.0.0:8100"
 
 admin:
@@ -22,7 +23,6 @@ admin:
 
 proxy:
   type: LoadBalancer
-  annotations: {}
   http:
     enabled: true
     servicePort: 80
@@ -48,29 +48,21 @@ ingressController:
     enabled: false
   env:
     CONTROLLER_KONG_ADMIN_TLS_SKIP_VERIFY: "true"
-  resources:
-    requests:
-      memory: 512Mi   # reduced from 1Gi
-      cpu: 0.25
-    limits:
-      memory: 1Gi
-      cpu: 0.5
+
+resources:
+  requests:
+    memory: 2Gi
+    cpu: 1
+  limits:
+    memory: 2Gi
+    cpu: 1
 
 initContainers:
   clearStalePid:
     resources:
       requests:
-        memory: 256Mi  # reduced from 512Mi
+        memory: 512Mi
         cpu: 0.1
       limits:
         memory: 512Mi
-        cpu: 0.2
-
-proxy:
-  resources:
-    requests:
-      memory: 1Gi   # safe for 6GB node
-      cpu: 0.5
-    limits:
-      memory: 2Gi
-      cpu: 1
+        cpu: 0.1

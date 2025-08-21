@@ -8,7 +8,9 @@ spec:
   source:
     repoURL: https://github.com/newconceptconsulting/argocd-mlm-prod
     targetRevision: main
-    path: deploy
+    path: deploy/all
+    kustomize:
+      namePrefix: ""
   destination:
     server: https://kubernetes.default.svc
     namespace: default

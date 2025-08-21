@@ -14,7 +14,7 @@ data:
             hosts:
               - "mlm.nccnaga.com"
             paths:
-              - /
+              - /get
             protocols:
               - http
               - https

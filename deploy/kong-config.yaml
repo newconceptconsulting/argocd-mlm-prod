@@ -102,30 +102,3 @@ spec:
     port: 8444
     targetPort: 8444
 
----
-# -------------------------------------------------------------------
-# 4. Ingress Example (using your TLS secret)
-# -------------------------------------------------------------------
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: httpbin-ingress
-  namespace: kong
-  annotations:
-    kubernetes.io/ingress.class: "kong"
-spec:
-  tls:
-  - hosts:
-    - mlm.nccnaga.com
-    secretName: mlm.nccnaga.com-tls
-  rules:
-  - host: mlm.nccnaga.com
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: httpbin
-            port:
-              number: 80

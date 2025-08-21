@@ -40,19 +40,19 @@ spec:
           resources:
             requests:
               cpu: "500m"
-              memory: "1Gi"
+              memory: "512Mi"
             limits:
               cpu: "1"
-              memory: "2Gi"
+              memory: "1Gi"
           env:
             - name: KONG_DATABASE
               value: "off"
             - name: KONG_DECLARATIVE_CONFIG
               value: "/kong/declarative/kong.yaml"
-            - name: KONG_PROXY_LISTEN 
-              value: "0.0.0.0:8000 http2, 0.0.0.0:8443 ssl crt=/etc/secrets/kong/tls.crt key=/etc/secrets/kong/tls.key"
+            - name: KONG_PROXY_LISTEN
+              value: "0.0.0.0:8000 http2,0.0.0.0:8443 ssl crt=/etc/secrets/kong/tls.crt key=/etc/secrets/kong/tls.key"
             - name: KONG_ADMIN_LISTEN
-              value: "0.0.0.0:8001, 0.0.0.0:8444 ssl"
+              value: "0.0.0.0:8001,0.0.0.0:8444 ssl"
           volumeMounts:
             - name: kong-config
               mountPath: /kong/declarative
@@ -100,3 +100,4 @@ spec:
       targetPort: 8444
   selector:
     app: kong
+

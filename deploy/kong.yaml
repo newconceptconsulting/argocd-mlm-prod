@@ -18,6 +18,10 @@ data:
             protocols:
               - http
               - https
+    certificates:
+      - name: mlm-nccnaga-cert
+        cert: /etc/secrets/kong/tls.crt
+        key: /etc/secrets/kong/tls.key
 ---
 apiVersion: apps/v1
 kind: Deployment

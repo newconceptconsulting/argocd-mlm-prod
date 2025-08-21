@@ -8,10 +8,7 @@ spec:
   source:
     repoURL: https://github.com/newconceptconsulting/argocd-mlm-prod
     targetRevision: main
-    path: deploy   # your Git path
-    helm:
-      valueFiles:
-        - kong-values.yaml
+    path: deploy
   destination:
     server: https://kubernetes.default.svc
     namespace: default

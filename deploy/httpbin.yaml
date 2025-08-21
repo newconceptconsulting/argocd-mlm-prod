@@ -1,3 +1,53 @@
+# -----------------------------------
+# SSL Certificate
+# -----------------------------------
+apiVersion: configuration.konghq.com/v1
+kind: KongCertificate
+metadata:
+  name: mlm-nccnaga-cert
+  namespace: default
+spec:
+  tls:
+    crt: /etc/secrets/ssl/tls.crt   # Kong will mount secret here
+    key: /etc/secrets/ssl/tls.key
+  snis:
+    - mlm.nccnaga.com
+---
+# -----------------------------------
+# KongService for httpbin
+# -----------------------------------
+apiVersion: configuration.konghq.com/v1
+kind: KongService
+metadata:
+  name: httpbin
+  namespace: default
+spec:
+  host: httpbin.default.svc.cluster.local
+  port: 80
+  protocol: http
+---
+# -----------------------------------
+# KongRoute for httpbin
+# -----------------------------------
+apiVersion: configuration.konghq.com/v1
+kind: KongRoute
+metadata:
+  name: httpbin-route
+  namespace: default
+spec:
+  hosts:
+    - mlm.nccnaga.com
+  paths:
+    - /
+  protocols:
+    - https
+  strip_path: true
+  service:
+    name: httpbin
+---
+# -----------------------------------
+# httpbin Deployment
+# -----------------------------------
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -19,14 +69,17 @@ spec:
           ports:
             - containerPort: 80
 ---
+# -----------------------------------
+# httpbin Service
+# -----------------------------------
 apiVersion: v1
 kind: Service
 metadata:
   name: httpbin
   namespace: default
 spec:
+  selector:
+    app: httpbin
   ports:
     - port: 80
       targetPort: 80
-  selector:
-    app: httpbin

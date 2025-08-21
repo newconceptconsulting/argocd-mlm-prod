@@ -49,8 +49,8 @@ spec:
               value: "off"
             - name: KONG_DECLARATIVE_CONFIG
               value: "/kong/declarative/kong.yaml"
-            - name: KONG_PROXY_LISTEN
-              value: "0.0.0.0:8000 http2, 0.0.0.0:8443 ssl crt=/etc/secrets/kong/tls.crt key=/etc/secrets/kong/tls.key http2"
+            - name: KONG_PROXY_LISTEN 
+              value: "0.0.0.0:8000 http2, 0.0.0.0:8443 ssl crt=/etc/secrets/kong/tls.crt key=/etc/secrets/kong/tls.key"
             - name: KONG_ADMIN_LISTEN
               value: "0.0.0.0:8001, 0.0.0.0:8444 ssl"
           volumeMounts:

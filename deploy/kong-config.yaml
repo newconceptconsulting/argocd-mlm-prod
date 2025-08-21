@@ -17,7 +17,6 @@ data:
     replicaCount: 1
     env:
       KONG_DATABASE: "off"
-      KONG_DECLARATIVE_CONFIG: "/kong/declarative/kong.yml"
       KONG_PROXY_ACCESS_LOG: "/dev/stdout"
       KONG_PROXY_ERROR_LOG: "/dev/stderr"
       KONG_ADMIN_ACCESS_LOG: "/dev/stdout"

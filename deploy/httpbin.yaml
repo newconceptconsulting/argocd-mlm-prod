@@ -16,8 +16,14 @@ spec:
       containers:
         - name: httpbin
           image: kennethreitz/httpbin
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "128m"
           ports:
             - containerPort: 80
+      imagePullSecrets:
+        - name: docker-hub
 ---
 apiVersion: v1
 kind: Service

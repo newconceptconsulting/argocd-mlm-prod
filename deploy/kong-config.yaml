@@ -51,29 +51,4 @@ data:
         port: 8444
       tls:
         enabled: true
----
-# 4️⃣ HTTPBIN Ingress with TLS
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: httpbin-ingress
-  namespace: default
-  annotations:
-    konghq.com/strip-path: "true"
-spec:
-  ingressClassName: kong
-  tls:
-    - hosts:
-        - mlm.nccnaga.com
-      secretName: mlm.nccnaga.com-tls
-  rules:
-    - host: mlm.nccnaga.com
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: httpbin
-                port:
-                  number: 80   # removed trailing dot
+

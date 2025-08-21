@@ -10,7 +10,7 @@ env:
   KONG_ADMIN_LISTEN: "127.0.0.1:8444 ssl"
   KONG_PROXY_LISTEN: "0.0.0.0:8000, 0.0.0.0:8443 http2 ssl"
   KONG_STATUS_LISTEN: "0.0.0.0:8100"
-  
+
 admin:
   enabled: true
   http:
@@ -19,18 +19,6 @@ admin:
     port: 8444
   tls:
     enabled: true
-
-ingressController:
-  enabled: true
-  ingressClass: kong
-  publishService:
-    enabled: true
-  replicaCount: 1
-  containerSecurityContext:
-    runAsUser: 101
-    runAsNonRoot: true
-  admissionWebhooks:
-    enabled: false
 
 proxy:
   type: LoadBalancer
@@ -43,19 +31,27 @@ proxy:
     enabled: true
     servicePort: 443
     containerPort: 8443
-    secretName: mlm.nccnaga.com-tls
+    existingSecret: mlm.nccnaga.com-tls   # 👈 use existing TLS secret
 
 ingressController:
   enabled: true
   ingressClass: kong
   installCRDs: false
+  publishService:
+    enabled: true
+  replicaCount: 1
+  containerSecurityContext:
+    runAsUser: 101
+    runAsNonRoot: true
+  admissionWebhooks:
+    enabled: false
   env:
     CONTROLLER_KONG_ADMIN_TLS_SKIP_VERIFY: "true"
 
 resources:
   requests:
-    cpu: 250m
-    memory: 512Mi
+    cpu: 1
+    memory: 4Gi
   limits:
-    cpu: 500m
-    memory: 1Gi
+    cpu: 1
+    memory: 4Gi

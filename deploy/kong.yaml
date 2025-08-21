@@ -37,6 +37,13 @@ spec:
       containers:
         - name: kong
           image: kong:3.6
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "1"
+              memory: "2Gi"
           env:
             - name: KONG_DATABASE
               value: "off"
@@ -44,7 +51,6 @@ spec:
               value: "/kong/declarative/kong.yaml"
             - name: KONG_PROXY_LISTEN
               value: "0.0.0.0:8000 http2, 0.0.0.0:8443 ssl crt=/etc/secrets/kong/tls.crt key=/etc/secrets/kong/tls.key http2"
-
             - name: KONG_ADMIN_LISTEN
               value: "0.0.0.0:8001, 0.0.0.0:8444 ssl"
           volumeMounts:
@@ -53,13 +59,6 @@ spec:
             - name: tls-certs
               mountPath: /etc/secrets/kong
               readOnly: true
-          resources:
-            requests:
-              cpu: "500m"
-              memory: "1Gi"
-            limits:
-              cpu: "1"
-              memory: "2Gi"
       volumes:
         - name: kong-config
           configMap:

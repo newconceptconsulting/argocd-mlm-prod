@@ -29,9 +29,6 @@ data:
             methods:
               - GET
               - POST
-            headers:
-              X-Api-Version:
-                - v1
             protocols:
               - http
               - https

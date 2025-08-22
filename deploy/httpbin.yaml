@@ -29,6 +29,19 @@ spec:
       imagePullSecrets:
         - name: docker-hub
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: httpbin-v1
+  namespace: default
+spec:
+  selector:
+    app: httpbin-v1
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+---
 # -------------------------------
 # Deployment v2
 # -------------------------------
@@ -59,4 +72,17 @@ spec:
               containerPort: 80
       imagePullSecrets:
         - name: docker-hub
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: httpbin-v2
+  namespace: default
+spec:
+  selector:
+    app: httpbin-v2
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
 

@@ -137,8 +137,8 @@ kind: Ingress
 metadata:
   name: httpbin-ingress
   annotations:
-    konghq.com/override: advanced-route
-    konghq.com/plugins: traffic-split
+    # konghq.com/override: advanced-route
+    # konghq.com/plugins: traffic-split
 spec:
   ingressClassName: kong
   rules:

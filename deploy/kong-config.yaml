@@ -36,6 +36,11 @@ spec:
               value: "/etc/secrets/kong/tls.crt"
             - name: KONG_SSL_CERT_KEY
               value: "/etc/secrets/kong/tls.key"
+          ports:
+            - containerPort: 8000
+            - containerPort: 8443
+            - containerPort: 8001
+            - containerPort: 8444
           volumeMounts:
             - name: kong-config
               mountPath: /kong/declarative

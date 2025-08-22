@@ -8,6 +8,7 @@ data:
     _format_version: "2.1"
     _transform: true
 
+    # Upstream with weighted targets
     upstreams:
       - name: httpbin-upstream
         targets:
@@ -16,20 +17,29 @@ data:
           - target: httpbin-v2.default.svc.cluster.local:80
             weight: 20
 
+    # Services using upstream
     services:
-      - name: httpbin
+      - name: httpbin-service
         host: httpbin-upstream
-        port: 80
-        protocol: http
         routes:
           - name: httpbin-route
             hosts:
               - "mlm.nccnaga.com"
             paths:
               - /get
+              - /api
             protocols:
               - http
               - https
+            methods:
+              - GET
+              - POST
+            headers:
+              X-Api-Version:
+                - v1
+            strip_path: true
+            preserve_host: true
+          
 ---
 apiVersion: apps/v1
 kind: Deployment

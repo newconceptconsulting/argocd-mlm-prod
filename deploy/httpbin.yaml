@@ -90,57 +90,16 @@ spec:
     app: httpbin-v2
 ---
 # -------------------------------
-# KongPlugin for Weighted Routing
-# -------------------------------
-apiVersion: configuration.konghq.com/v1
-kind: KongPlugin
-metadata:
-  name: traffic-split
-  namespace: default
-plugin: traffic-split
-config:
-  rules:
-    - weight: 80
-      upstream:
-        service: httpbin-v1.default.svc
-        port: 80
-    - weight: 20
-      upstream:
-        service: httpbin-v2.default.svc
-        port: 80
----
-# -------------------------------
-# Advanced Route Config
-# -------------------------------
-apiVersion: configuration.konghq.com/v1
-kind: KongIngress
-metadata:
-  name: advanced-route
-route:
-  methods:
-    - GET
-    - POST
-  headers:
-    X-Api-Version:
-      - v1
-  paths:
-    - /get
-    - /api
-  strip_path: true
-  preserve_host: true
----
-# -------------------------------
-# Ingress (attach traffic-split plugin)
+# Ingress httpbin
 # -------------------------------
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: httpbin-ingress
+  namespace: default
   annotations:
-    # konghq.com/override: advanced-route
-    # konghq.com/plugins: traffic-split
+    kubernetes.io/ingress.class: "kong"
 spec:
-  ingressClassName: kong
   rules:
     - host: mlm.nccnaga.com
       http:
@@ -149,13 +108,13 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: httpbin-v1   # Kong will override with traffic-split
+                name: httpbin-v1   # Kong uses upstream, so service here is just a placeholder
                 port:
                   number: 80
           - path: /api
             pathType: Prefix
             backend:
               service:
-                name: httpbin-v1   # Kong will override with traffic-split
+                name: httpbin-v1
                 port:
                   number: 80

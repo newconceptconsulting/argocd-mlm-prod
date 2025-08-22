@@ -6,9 +6,21 @@ metadata:
 data:
   kong.yaml: |
     _format_version: "2.1"
+    _transform: true
+
+    upstreams:
+      - name: httpbin-upstream
+        targets:
+          - target: httpbin-v1.default.svc.cluster.local:80
+            weight: 80
+          - target: httpbin-v2.default.svc.cluster.local:80
+            weight: 20
+
     services:
       - name: httpbin
-        url: "http://httpbin.default.svc.cluster.local:80"
+        host: httpbin-upstream
+        port: 80
+        protocol: http
         routes:
           - name: httpbin-route
             hosts:
